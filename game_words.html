@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马了个马 - 二年级多题库与Excel极速导入巨幕版</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --grass-green: #69b93b;
+            --dark-grass: #498a24;
+            --sky-bg: #e2f4ff;
+            --wood-brown: #8b5a2b;
+            --dark-wood: #5c3a1a;
+            --card-ivory: #fffef2;
+            --card-shadow: #dfd9b8;
+            --card-border: #4a3625;
+            --blocked-bg: #d0e6b5;
+            --blocked-shadow: #94b870;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial Rounded MT Bold', 'Comic Sans MS', sans-serif;
+        }
+
+        body {
+            background-color: #cbeb99;
+            background-image: radial-gradient(#b8e27d 20%, transparent 20%), radial-gradient(#b8e27d 20%, transparent 20%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 850px;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #2c4c16;
+            text-shadow: 2px 2px 0px #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #4a6b32;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 4px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 6px;
+            border: 1px solid rgba(44, 76, 22, 0.2);
+        }
+
+        .game-container-wrapper {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 1140px;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 125px;
+            padding-top: 90px;
+        }
+
+        .center-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            max-width: 850px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            background: #fffbdf;
+            border: 3px solid var(--card-border);
+            padding: 10px 25px;
+            border-radius: 14px;
+            box-shadow: 0 5px 0 var(--card-border);
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #4a3625;
+            font-size: 16px;
+        }
+
+        #play-area {
+            position: relative;
+            width: 100%;
+            height: 680px;
+            background-color: var(--grass-green);
+            border: 4px solid var(--card-border);
+            border-radius: 28px;
+            box-shadow: 0 10px 0 var(--card-border), 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        #board-zone {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            height: 500px;
+            background-color: var(--dark-grass);
+            border-radius: 20px;
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        .card {
+            position: absolute;
+            width: 70px;
+            height: 92px;
+            background-color: var(--card-ivory);
+            border: 2px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 6px 0 var(--card-shadow), 0 6px 10px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.15s, top 0.3s cubic-bezier(0.25, 1, 0.5, 1), left 0.3s cubic-bezier(0.25, 1, 0.5, 1), filter 0.3s;
+            word-break: break-all;
+            font-weight: 900;
+        }
+
+        .card .text {
+            font-size: 15px;
+            line-height: 1.2;
+            color: #3e2723;
+            width: 100%;
+            text-shadow: 0.5px 0.5px 0px rgba(255,255,255,0.5);
+        }
+
+        .card.blocked {
+            background-color: var(--blocked-bg);
+            box-shadow: 0 6px 0 var(--blocked-shadow);
+            filter: brightness(0.92);
+            cursor: not-allowed;
+        }
+        
+        .card.blocked .text {
+            color: #5d4037;
+            opacity: 0.85;
+        }
+
+        .card.eliminating {
+            animation: card-pop-disappear 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+            z-index: 99999 !important;
+            pointer-events: none;
+        }
+
+        @keyframes card-pop-disappear {
+            0% { transform: scale(1); filter: brightness(1.3); opacity: 1; }
+            30% { transform: scale(1.18) rotate(-6deg); filter: brightness(1.5); opacity: 1; }
+            100% { transform: scale(0) rotate(20deg); opacity: 0; }
+        }
+
+        .card.hint-highlight {
+            animation: pulse-glow 0.6s infinite alternate;
+            border-color: #ff3366;
+            z-index: 9999 !important;
+        }
+
+        @keyframes pulse-glow {
+            from { transform: scale(1); box-shadow: 0 0 10px #ff3366, 0 6px 0 var(--card-shadow); }
+            to { transform: scale(1.08); box-shadow: 0 0 20px #ff3366, 0 6px 0 var(--card-shadow); }
+        }
+
+        .slot-container {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 380px;
+            height: 125px;
+            background: var(--wood-brown);
+            border: 3px solid var(--card-border);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-shadow: 0 6px 0 #422911, inset 0 5px 8px rgba(0,0,0,0.3);
+        }
+
+        .slot-bg-grid {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .slot-box {
+            width: 70px;
+            height: 96px;
+            border: 2px dashed rgba(255,255,255,0.25);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.15);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 4px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+            border: 2px solid var(--card-border);
+            border-radius: 14px;
+            cursor: pointer;
+            background: #ff9800;
+            box-shadow: 0 5px 0 #e65100;
+            transition: transform 0.05s, box-shadow 0.05s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(5px);
+            box-shadow: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #b0bec5 !important;
+            box-shadow: 0 5px 0 #78909c !important;
+        }
+
+        .btn-green { background: #4caf50; box-shadow: 0 5px 0 #2e7d32; }
+        .btn-blue { background: #2196f3; box-shadow: 0 5px 0 #1565c0; }
+        .btn-pink { background: #e91e63; box-shadow: 0 5px 0 #ad1457; }
+        .btn-grey { background: #78909c; box-shadow: 0 5px 0 #455a64; }
+        .btn-audio { background: #9c27b0; box-shadow: 0 5px 0 #4a148c; }
+
+        .count-badge { font-size: 11px; background: rgba(0,0,0,0.25); padding: 1px 8px; border-radius: 10px; }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; padding: 15px;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #fffef0; border: 4px solid var(--card-border); border-radius: 20px;
+            width: 100%; max-width: 500px; padding: 20px; box-shadow: 0 8px 0 var(--card-border);
+            max-height: 88vh; display: flex; flex-direction: column;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px dashed var(--card-border); padding-bottom: 8px; }
+        .modal-title { font-size: 18px; font-weight: bold; color: var(--dark-wood); }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #718096; }
+        .manager-scroll { overflow-y: auto; flex: 1; padding-right: 4px; }
+        .form-group { background: #f4f1db; border: 2px solid var(--card-border); padding: 12px; border-radius: 12px; margin-bottom: 12px; }
+        .form-row { display: flex; gap: 6px; margin-bottom: 6px; }
+        .form-row input, .form-row select { flex: 1; padding: 8px; border: 2px solid var(--card-border); border-radius: 6px; font-size: 13px; background: #fff; }
+        .word-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 2px dashed #cbd5e1; font-size: 13px; }
+        .tag-ms { background: #e3f2fd; color: #0d47a1; padding: 2px 5px; border-radius: 4px; font-weight: bold; }
+        .tag-zh { background: #fff3e0; color: #e65100; padding: 2px 5px; border-radius: 4px; }
+        .btn-delete { background: none; border: none; color: #cc3333; cursor: pointer; font-weight: bold; }
+        .result-body { text-align: center; padding: 15px 0; }
+        .result-icon { font-size: 55px; margin-bottom: 10px; }
+        .result-text { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: var(--dark-wood); }
+    </style>
+</head>
+<body>
+
+    <!-- 返回游戏大厅的专属萌系按钮 -->
+ <a href="page_game.html" onclick="
+    try {
+        if (window.parent.document.exitFullscreen) { window.parent.document.exitFullscreen(); }
+        else if (window.parent.document.webkitExitFullscreen) { window.parent.document.webkitExitFullscreen(); }
+    } catch(e) {
+        console.log('退出全屏失败');
+    }
+" style="
+    display: inline-block;
+    background: #EAECEE;
+    border: 3px solid #4a3625;
+    padding: 8px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    color: #4a3625;
+    box-shadow: 0 4px 0 #4a3625;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 99999;
+">⬅ 返回大厅</a>
+
+    <header>
+        <h1>🐑 马了个马 <span class="subtitle">二年级多题库配对版 (Tahap 2)</span></h1>
+    </header>
+
+    <div class="game-container-wrapper">
+        <div class="side-panel">
+            <button class="btn" id="btn-undo" onclick="game.undo()">
+                <span>↩️ 撤回上步</span>
+                <span class="count-badge" id="undo-count">2</span>
+            </button>
+            <button class="btn btn-blue" id="btn-hint" onclick="game.hint()">
+                <span>💡 智能提示</span>
+                <span class="count-badge" id="hint-count">2</span>
+            </button>
+            <button class="btn btn-audio" id="btn-music" onclick="audioSynth.toggle()">
+                <span id="music-icon">🎵 开启音乐</span>
+            </button>
+        </div>
+
+        <div class="center-panel">
+            <div class="stats-bar">
+                <div>当前题库: <span id="current-bank-title" style="color: #c2185b;">加载中...</span></div>
+                <div>剩余卡片: <span id="remain-count">0</span> 张</div>
+            </div>
+
+            <div id="play-area">
+                <div id="board-zone"></div>
+                <div class="slot-container">
+                    <div class="slot-bg-grid">
+                        <div class="slot-box"></div>
+                        <div class="slot-box"></div>
+                        <div class="slot-box"></div>
+                        <div class="slot-box"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <button class="btn btn-green" id="btn-shuffle" onclick="game.shuffle()">
+                <span>🔀 打乱洗牌</span>
+                <span class="count-badge" id="shuffle-count">2</span>
+            </button>
+            <button class="btn btn-pink" onclick="game.start()">
+                <span>🔄 重新开始</span>
+            </button>
+            <button class="btn btn-grey" onclick="manager.open()">
+                <span>⚙️ 题库管理</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 题库管理弹窗 -->
+    <div class="modal" id="modal-manager">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">⚙️ 题库多套管理中心</div>
+                <button class="close-btn" onclick="manager.close()">&times;</button>
+            </div>
+            <div class="manager-scroll">
+                <div class="form-group" style="background: #ebf8ff; border-color: #2196f3;">
+                    <div style="font-weight: bold; margin-bottom: 6px; font-size: 14px; color: #1a0dab;">📁 切换/删除已有题库：</div>
+                    <div class="form-row">
+                        <select id="bank-selector" onchange="manager.switchBank(this.value)"></select>
+                        <button class="btn btn-pink" style="width: 100px; padding: 4px; font-size: 12px;" onclick="manager.deleteBank()">❌ 删除题库</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="background: #fff3e0; border-color: #ff9800;">
+                    <div style="font-weight: bold; margin-bottom: 6px; font-size: 14px; color: #e65100;">📊 Excel 批量表格处理中心：</div>
+                    <div class="form-row" style="gap: 10px;">
+                        <button class="btn btn-blue" style="font-size: 12px; padding: 6px 2px;" onclick="manager.downloadTemplate()">📥 下载 Excel 格式模板</button>
+                        <label class="btn btn-green" style="font-size: 12px; padding: 6px 2px; cursor: pointer; margin: 0;">
+                            📤 导入 Excel 表格文件
+                            <input type="file" id="input-excel-file" accept=".xlsx, .xls" style="display: none;" onchange="manager.importExcel(this)">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="background: #f1f8e9; border-color: #4caf50;">
+                    <div style="font-weight: bold; margin-bottom: 6px; font-size: 14px; color: #2e7d32;">➕ 新建一套全新题库：</div>
+                    <div class="form-row">
+                        <input type="text" id="input-new-bank-name" placeholder="请输入新题库名称">
+                        <button class="btn btn-green" style="width: 100px; padding: 4px; font-size: 12px;" onclick="manager.createBank()">✨ 立即创建</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="font-weight: bold; margin-bottom: 6px; font-size: 13px;">向当前题库添加单个生字：</div>
+                    <div class="form-row">
+                        <input type="text" id="input-ms" placeholder="马来语单词 (如: rumah)">
+                        <input type="text" id="input-zh1" placeholder="中文翻译 (如: 房子)">
+                    </div>
+                    <button class="btn btn-blue" style="padding: 6px; font-size: 12px; width:100px;" onclick="manager.addWord()">➕ 确认添加</button>
+                </div>
+
+                <div style="font-weight: bold; margin-bottom: 6px; font-size: 13px; display: flex; justify-content: space-between;">
+                    <span id="current-list-label">当前题库词汇列表</span>
+                    <button onclick="manager.resetCurrentToDefault()" style="background:none; border:none; color:#2196f3; cursor:pointer; font-size:12px; font-weight:bold;">重置本题库为默认20组</button>
+                </div>
+                <ul style="list-style: none;" id="manager-word-list"></ul>
+            </div>
+            <div class="modal-footer" style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn btn-grey" style="flex:1" onclick="manager.close()">取消</button>
+                <button class="btn btn-green" style="flex:2" onclick="manager.saveAndRestart()">💾 保存并载入当前题库</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结果弹窗 -->
+    <div class="modal" id="modal-result">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="result-body">
+                <div class="result-icon" id="result-icon">🏆</div>
+                <div class="result-text" id="result-text">Anda Menang!</div>
+                <button class="btn btn-green" style="width: 100%; padding: 10px;" onclick="document.getElementById('modal-result').classList.remove('active'); game.start();">再玩一局 (Main Semula)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultWordsPool = [
+            { id: 1, words: ["buku", "书本"] }, { id: 2, words: ["pensel", "铅笔"] },
+            { id: 3, words: ["guru", "老师"] }, { id: 4, words: ["murid", "学生"] },
+            { id: 5, words: ["bapa", "父亲"] }, { id: 6, words: ["ibu", "母亲"] },
+            { id: 7, words: ["rumah", "房子"] }, { id: 8, words: ["kucing", "猫咪"] },
+            { id: 9, words: ["anjing", "狗儿"] }, { id: 10, words: ["epal", "苹果"] },
+            { id: 11, words: ["pisang", "香蕉"] }, { id: 12, words: ["merah", "红色"] },
+            { id: 13, words: ["biru", "蓝色"] }, { id: 14, words: ["makan", "吃东西"] },
+            { id: 15, words: ["minum", "喝东西"] }, { id: 16, words: ["lari", "奔跑"] },
+            { id: 17, words: ["duduk", "坐下"] }, { id: 18, words: ["tangan", "手掌"] },
+            { id: 19, words: ["kaki", "脚掌"] }, { id: 20, words: ["mata", "眼睛"] }
+        ];
+
+        let bankStorage = JSON.parse(localStorage.getItem('malay_multi_banks_v4')) || {
+            activeBank: "📚 默认二年级核心词汇库",
+            banks: {
+                "📚 默认二年级核心词汇库": [...defaultWordsPool],
+                "🍎 单元一：水果与颜色": [
+                    { id: 1, words: ["epal", "苹果"] }, { id: 2, words: ["pisang", "香蕉"] },
+                    { id: 3, words: ["tembikai", "西瓜"] }, { id: 4, words: ["merah", "红色"] },
+                    { id: 5, words: ["biru", "蓝色"] }
+                ]
+            }
+        };
+
+        class AudioSynthesizerBGM {
+            constructor() {
+                this.ctx = null; this.isPlaying = false; this.timer = null; this.tempo = 140; this.step = 0;
+                this.melody = ['C4', 'E4', 'G4', 'A4', 'G4', 'E4', 'C4', 'D4', 'E4', 'G4', 'C5', 'A4', 'G4', 'E4', 'D4', 'C4'];
+                this.noteFreq = {'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88, 'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99};
+            }
+            init() { if (!this.ctx) { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } }
+            toggle() {
+                this.init();
+                const btn = document.getElementById('btn-music'); const icon = document.getElementById('music-icon');
+                if (this.isPlaying) { this.stop(); icon.innerText = "🎵 开启音乐"; btn.className = "btn btn-audio"; } 
+                else { this.playLoop(); icon.innerText = "🔇 关闭音乐"; btn.className = "btn btn-pink"; }
+            }
+            playLoop() {
+                if (this.isPlaying) return; this.isPlaying = true;
+                if (this.ctx.state === 'suspended') { this.ctx.resume(); }
+                const secondsPerBeat = 60.0 / this.tempo / 2;
+                this.timer = setInterval(() => { this.playNote(); }, secondsPerBeat * 1000);
+            }
+            playNote() {
+                if (!this.isPlaying || !this.ctx) return;
+                const freq = this.noteFreq[this.melody[this.step % this.melody.length]];
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = (this.step % 4 === 0) ? 'square' : 'triangle';
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+                osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+                this.step++;
+            }
+            stop() { this.isPlaying = false; if (this.timer) { clearInterval(this.timer); this.timer = null; } }
+        }
+
+        class Game {
+            constructor() {
+                this.area = document.getElementById('play-area'); this.cards = []; this.slot = [];
+                this.props = { undo: 2, shuffle: 2, hint: 2 }; this.isAnimating = false; this.history = [];
+            }
+            start() {
+                document.querySelectorAll('#play-area .card').forEach(el => el.remove());
+                this.slot = []; this.history = []; this.props = { undo: 2, shuffle: 2, hint: 2 };
+                this.isAnimating = false; this.updatePropBadges();
+
+                let activeBankWords = bankStorage.banks[bankStorage.activeBank] || [...defaultWordsPool];
+                document.getElementById('current-bank-title').innerText = bankStorage.activeBank;
+
+                let rawCards = [];
+                activeBankWords.forEach(group => {
+                    rawCards.push({ groupId: group.id, text: group.words[0], isMalay: true });
+                    rawCards.push({ groupId: group.id, text: group.words[1], isMalay: false });
+                });
+
+                this.shuffleArray(rawCards);
+                const positions = this.generatePositions(rawCards.length);
+
+                this.cards = rawCards.map((data, i) => {
+                    const pos = positions[i];
+                    return {
+                        id: `c-${data.groupId}-${data.isMalay ? 'm' : 'z'}-${i}`, groupId: data.groupId, text: data.text, isMalay: data.isMalay,
+                        x: pos.x, y: pos.y, layer: pos.layer, status: 'board', isClickable: true, dom: null
+                    };
+                });
+                this.renderBoard(); this.updateGameState();
+            }
+            generatePositions(totalCards) {
+                let pool = [];
+                const layoutConfig = [
+                    { rows: 4, cols: 10, startX: 45, startY: 30, spaceX: 76, spaceY: 98, layer: 0 },
+                    { rows: 3, cols: 9, startX: 83, startY: 79, spaceX: 76, spaceY: 98, layer: 1 }
+                ];
+                layoutConfig.forEach(l => {
+                    for(let r=0; r<l.rows; r++) {
+                        for(let c=0; c<l.cols; c++) { pool.push({ x: l.startX + c * l.spaceX, y: l.startY + r * l.spaceY, layer: l.layer }); }
+                    }
+                });
+                while (pool.length < totalCards) {
+                    pool.push({ x: Math.floor(Math.random() * 660) + 60, y: Math.floor(Math.random() * 240) + 60, layer: Math.floor(Math.random() * 2) });
+                }
+                this.shuffleArray(pool);
+                return pool.slice(0, totalCards).sort((a, b) => a.layer - b.layer);
+            }
+            renderBoard() {
+                this.cards.forEach(card => {
+                    if (card.status !== 'board') return;
+                    const div = document.createElement('div'); div.className = 'card'; div.id = card.id;
+                    div.style.left = `${card.x}px`; div.style.top = `${card.y}px`; div.style.zIndex = card.layer * 10;
+                    const textDiv = document.createElement('div'); textDiv.className = 'text'; textDiv.innerText = card.text;
+                    if(card.text.length > 6) textDiv.style.fontSize = '12px';
+                    const flag = document.createElement('span');
+                    flag.style.cssText = "position: absolute; top: 3px; left: 5px; font-size: 9px; opacity: 0.4;";
+                    flag.innerText = card.isMalay ? '🇲🇾' : '🇨🇳';
+                    div.appendChild(textDiv); div.appendChild(flag);
+                    div.onclick = () => this.clickCard(card); this.area.appendChild(div); card.dom = div;
+                });
+                this.checkOverlap();
+            }
+            checkOverlap() {
+                const cWidth = 70; const cHeight = 92;
+                for (let i = 0; i < this.cards.length; i++) {
+                    if (this.cards[i].status !== 'board') continue;
+                    let isBlocked = false;
+                    for (let j = 0; j < this.cards.length; j++) {
+                        if (this.cards[j].status !== 'board') continue;
+                        if (this.cards[j].layer > this.cards[i].layer) {
+                            const hOverlap = Math.abs(this.cards[i].x - this.cards[j].x) < cWidth - 4;
+                            const vOverlap = Math.abs(this.cards[i].y - this.cards[j].y) < cHeight - 4;
+                            if (hOverlap && vOverlap) { isBlocked = true; break; }
+                        }
+                    }
+                    this.cards[i].isClickable = !isBlocked;
+                    if (this.cards[i].dom) {
+                        if (isBlocked) this.cards[i].dom.classList.add('blocked');
+                        else this.cards[i].dom.classList.remove('blocked');
+                    }
+                }
+            }
+            clickCard(card) {
+                if (this.isAnimating || !card.isClickable || card.status !== 'board') return;
+                this.isAnimating = true; this.clearHints();
+                this.history.push({ cardId: card.id, slotIndex: this.slot.length, prevSlotState: [...this.slot.map(c => c.id)] });
+                card.status = 'slot'; card.dom.style.zIndex = 10000;
+                let insIdx = this.slot.findIndex(c => c.groupId === card.groupId);
+                if (insIdx === -1) { this.slot.push(card); } 
+                else { while(insIdx < this.slot.length && this.slot[insIdx].groupId === card.groupId) { insIdx++; } this.slot.splice(insIdx, 0, card); }
+                this.animateToSlot(() => { this.checkMatch(); });
+            }
+            animateToSlot(callback) {
+                const slotContainer = document.querySelector('.slot-container');
+                const slotContainerRect = slotContainer.getBoundingClientRect();
+                const playAreaRect = this.area.getBoundingClientRect();
+                const offsetLeftInArea = slotContainerRect.left - playAreaRect.left;
+                const targetTop = 548; const paddingLeft = 15; const stepX = 82;
+                this.slot.forEach((card, index) => {
+                    const targetLeft = offsetLeftInArea + paddingLeft + index * stepX;
+                    card.dom.style.left = `${targetLeft}px`; card.dom.style.top = `${targetTop}px`;
+                    card.dom.style.transform = 'scale(1)'; card.dom.style.zIndex = 1000 + index; card.dom.classList.remove('blocked');
+                });
+                setTimeout(() => { this.isAnimating = false; this.checkOverlap(); if(callback) callback(); }, 220);
+            }
+            checkMatch() {
+                const counts = {}; this.slot.forEach(c => { counts[c.groupId] = (counts[c.groupId] || 0) + 1; });
+                let matchGid = null;
+                for (let gid in counts) { if (counts[gid] === 2) { matchGid = parseInt(gid); break; } }
+                if (matchGid !== null) {
+                    this.isAnimating = true; const matches = this.slot.filter(c => c.groupId === matchGid);
+                    matches.forEach(c => { c.dom.classList.add('eliminating'); c.status = 'eliminated'; });
+                    setTimeout(() => {
+                        this.slot = this.slot.filter(c => c.groupId !== matchGid);
+                        matches.forEach(c => c.dom.remove()); this.animateToSlot(); this.updateGameState();
+                    }, 320);
+                } else { this.updateGameState(); }
+            }
+            updateGameState() {
+                const rem = this.cards.filter(c => c.status === 'board').length;
+                document.getElementById('remain-count').innerText = rem + this.slot.length;
+                if (rem === 0 && this.slot.length === 0) { this.showResult(true); } 
+                else if (this.slot.length >= 4) { this.showResult(false); }
+            }
+            showResult(isWin) {
+                const modal = document.getElementById('modal-result'); modal.classList.add('active');
+                document.getElementById('result-icon').innerText = isWin ? '🏆' : '🐑';
+                document.getElementById('result-text').innerHTML = isWin ? '太棒了！生字配对成功！' : '格子已满，挑战失败！';
+            }
+            undo() {
+                if (this.props.undo <= 0 || this.history.length === 0 || this.isAnimating) return;
+                this.props.undo--; this.updatePropBadges();
+                const act = this.history.pop(); const card = this.cards.find(c => c.id === act.cardId);
+                this.slot = this.slot.filter(c => c.id !== card.id); card.status = 'board';
+                card.dom.style.left = `${card.x}px`; card.dom.style.top = `${card.y}px`; card.dom.style.zIndex = card.layer * 10;
+                this.animateToSlot();
+            }
+            shuffle() {
+                if (this.props.shuffle <= 0 || this.isAnimating) return;
+                let activeCards = this.cards.filter(c => c.status === 'board'); if (activeCards.length === 0) return;
+                this.props.shuffle--; this.updatePropBadges(); this.clearHints();
+                let arr = activeCards.map(c => ({ text: c.text, groupId: c.groupId, isMalay: c.isMalay })); this.shuffleArray(arr);
+                activeCards.forEach((card, idx) => {
+                    card.text = arr[idx].text; card.groupId = arr[idx].groupId; card.isMalay = arr[idx].isMalay;
+                    card.dom.querySelector('.text').innerText = card.text;
+                    card.dom.querySelector('span').innerText = card.isMalay ? '🇲🇾' : '🇨🇳';
+                });
+                this.checkOverlap();
+            }
+            hint() {
+                if (this.props.hint <= 0 || this.isAnimating) return; this.clearHints();
+                let targetGid = null;
+                if (this.slot.length > 0) { targetGid = this.slot[0].groupId; } 
+                else { const clickOne = this.cards.find(c => c.status === 'board' && c.isClickable); if (clickOne) targetGid = clickOne.groupId; }
+                if (targetGid === null) return;
+                this.props.hint--; this.updatePropBadges();
+                this.cards.forEach(c => { if (c.status === 'board' && c.groupId === targetGid) c.dom.classList.add('hint-highlight'); });
+            }
+            clearHints() { this.cards.forEach(c => { if (c.dom) c.dom.classList.remove('hint-highlight'); }); }
+            updatePropBadges() {
+                document.getElementById('undo-count').innerText = this.props.undo; document.getElementById('shuffle-count').innerText = this.props.shuffle; document.getElementById('hint-count').innerText = this.props.hint;
+            }
+            shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
+        }
+
+        class VocabularyManager {
+            open() { document.getElementById('modal-manager').classList.add('active'); this.renderBankSelector(); this.renderList(); }
+            close() { document.getElementById('modal-manager').classList.remove('active'); }
+            renderBankSelector() {
+                const selector = document.getElementById('bank-selector'); selector.innerHTML = '';
+                Object.keys(bankStorage.banks).forEach(name => {
+                    const opt = document.createElement('option'); opt.value = name; opt.innerText = name;
+                    if (name === bankStorage.activeBank) opt.selected = true;
+                    selector.appendChild(opt);
+                });
+            }
+            switchBank(name) { bankStorage.activeBank = name; this.renderList(); }
+            createBank() {
+                const input = document.getElementById('input-new-bank-name'); const name = input.value.trim();
+                if (!name || bankStorage.banks[name]) return;
+                bankStorage.banks[name] = [{ id: 1, words: ["mula", "开始"] }];
+                bankStorage.activeBank = name; input.value = ''; this.renderBankSelector(); this.renderList();
+            }
+            deleteBank() {
+                if (Object.keys(bankStorage.banks).length <= 1) return;
+                delete bankStorage.banks[bankStorage.activeBank];
+                bankStorage.activeBank = Object.keys(bankStorage.banks)[0]; this.renderBankSelector(); this.renderList();
+            }
+            renderList() {
+                const container = document.getElementById('manager-word-list'); container.innerHTML = '';
+                let currentWords = bankStorage.banks[bankStorage.activeBank] || [];
+                currentWords.forEach(item => {
+                    const li = document.createElement('li'); li.className = 'word-item';
+                    li.innerHTML = `<div><span class="tag-ms">${item.words[0]}</span> ➡️ <span class="tag-zh">${item.words[1]}</span></div><button class="btn-delete" onclick="manager.deleteWord(${item.id})">❌</button>`;
+                    container.appendChild(li);
+                });
+            }
+            addWord() {
+                const ms = document.getElementById('input-ms').value.trim(); const z1 = document.getElementById('input-zh1').value.trim();
+                if (!ms || !z1) return;
+                let currentWords = bankStorage.banks[bankStorage.activeBank];
+                currentWords.push({ id: Date.now(), words: [ms, z1] });
+                document.getElementById('input-ms').value = ''; document.getElementById('input-zh1').value = ''; this.renderList();
+            }
+            deleteWord(id) {
+                let currentWords = bankStorage.banks[bankStorage.activeBank]; if (currentWords.length <= 1) return;
+                bankStorage.banks[bankStorage.activeBank] = currentWords.filter(i => i.id !== id); this.renderList();
+            }
+            resetCurrentToDefault() {
+                bankStorage.banks[bankStorage.activeBank] = [...defaultWordsPool]; this.renderList();
+            }
+            downloadTemplate() {
+                const sheetData = [["Melayu (马来语生字)", "华语 (对应翻译)"], ["buku", "书本"], ["pensel", "铅笔"]];
+                const ws = XLSX.utils.aoa_to_sheet(sheetData); const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "生字表"); XLSX.writeFile(wb, `马了个马_题库模板.xlsx`);
+            }
+            importExcel(element) {
+                const file = element.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                    let parsed = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        if (rows[i] && rows[i][0] && rows[i][1]) {
+                            parsed.push({ id: i, words: [String(rows[i][0]).trim(), String(rows[i][1]).trim()] });
+                        }
+                    }
+                    if (parsed.length > 0) {
+                        bankStorage.banks[bankStorage.activeBank] = parsed; alert('导入成功！'); this.renderList();
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+            saveAndRestart() { localStorage.setItem('malay_multi_banks_v4', JSON.stringify(bankStorage)); this.close(); game.start(); }
+        }
+
+const game = new Game(); const manager = new VocabularyManager(); const audioSynth = new AudioSynthesizerBGM();
+        // 💡 删除了之前被浏览器拦截的 window.parent 自动申请全屏逻辑，只保留纯净的游戏启动
+        window.onload = () => { game.start(); };
+
+    </script>
+</body>
+</html>

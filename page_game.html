@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>游戏大厅</title>
+    <style>
+        :root {
+            --bg-color: #FFFDF9;
+            --border-color: #5A3E2D;
+            --text-main: #3C281E;
+            --accent-yellow: #F5B041;
+            --accent-blue: #4A90E2;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        /* 游戏卡片网格布局 */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        /* 游戏选择卡牌样式 */
+        .game-card {
+            background: #FFFFFF;
+            border: 3px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 6px 0px var(--border-color);
+            text-decoration: none;
+            color: var(--text-main);
+            transition: transform 0.1s, box-shadow 0.1s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 180px;
+        }
+
+        /* 鼠标悬停和点击效果 */
+        .game-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0px var(--border-color);
+        }
+
+        .game-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px var(--border-color);
+        }
+
+        .game-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .game-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .game-desc {
+            font-size: 13px;
+            color: #7F8C8D;
+            line-height: 1.4;
+        }
+
+        .btn-play {
+            background: var(--accent-yellow);
+            border: 2px solid var(--border-color);
+            padding: 6px 0;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+            box-shadow: 0 3px 0 var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+   <h2>🎮 挑选一个课堂游戏吧！</h2>
+
+    <div class="game-grid">
+
+        <!-- 💡 核心改动：在 <a> 标签上直接添加 onclick 事件，点击瞬间拉满全屏，然后再跳转游戏 -->
+        <a href="game_words.html" class="game-card" onclick="
+    try {
+        var frame = window.parent.document.getElementById('panel-game');
+        if (frame.requestFullscreen) { frame.requestFullscreen(); }
+        else if (frame.webkitRequestFullscreen) { frame.webkitRequestFullscreen(); }
+    } catch(e) {
+        console.log('全屏请求被拦截，请尝试在浏览器点击页面空白处后再试');
+    }
+">
+    <div class="game-icon">🐑</div>
+    <div>
+        <div class="game-title">马了个马 课堂游戏</div>
+        <div class="game-desc">有趣的二年级国语词汇多题库配对消消乐。</div>
+    </div>
+    <div class="btn-play">开始游戏</div>
+</a>
+
+ <!-- 💡 核心新增：游戏卡片 2：连向你的五子棋游戏 -->
+        <a href="game_gomoku.html" class="game-card">
+            <div class="game-icon">棋</div>
+            <div>
+                <div class="game-title">生字五子棋</div>
+                <div class="game-desc">五子棋英文单词游戏 - 寓教于乐的学习体验。</div>
+            </div>
+            <div class="btn-play">开始游戏</div>
+        </a>
+    </div>
+
+</body>
+</html>

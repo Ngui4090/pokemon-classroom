@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>幸运抽奖大轮盘</title>
+    <style>
+        :root {
+            --bg-color: #FAF6EE;
+            --border-color: #5A3E2D;
+            --text-main: #3C281E;
+            --accent-yellow: #F5B041;
+            --accent-orange: #EB984E;
+            --accent-green: #52BE80;
+            --accent-purple: #AF7AC5;
+            --accent-blue: #4A90E2;
+            --accent-red: #EC7063;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            user-select: none;
+        }
+
+        .draw-header {
+            width: 100%; max-width: 900px; background: white;
+            border: 3.5px solid var(--border-color); border-radius: 20px;
+            padding: 15px 20px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 6px 0 var(--border-color);
+            margin-bottom: 20px; box-sizing: border-box; flex-wrap: wrap; gap: 10px;
+        }
+
+        .student-select {
+            padding: 8px 14px; font-size: 15px; font-weight: bold;
+            border: 2.5px solid var(--border-color); border-radius: 12px;
+            background: var(--accent-yellow); outline: none; cursor: pointer;
+            max-width: 200px;
+        }
+
+        /* 轮盘主舞台容器 */
+        .wheel-stage-container {
+            width: 100%; max-width: 900px; background: white;
+            border: 4px solid var(--border-color); border-radius: 28px;
+            padding: 30px; box-shadow: 0 8px 0 var(--border-color);
+            display: flex; flex-direction: column; align-items: center;
+            box-sizing: border-box; position: relative;
+        }
+
+        .wheel-wrapper {
+            position: relative; width: 360px; height: 360px;
+            margin: 20px 0;
+        }
+
+        canvas {
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 6px solid var(--border-color);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            transition: transform 4s cubic-bezier(0.15, 0.75, 0.14, 1);
+        }
+
+        .wheel-pointer {
+            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 36px solid #C0392B;
+            z-index: 10;
+            filter: drop-shadow(0 3px 0 var(--border-color));
+        }
+
+        .btn-spin {
+            margin-top: 15px; padding: 12px 35px; font-size: 18px; font-weight: 900;
+            color: white; background: var(--accent-red);
+            border: 3.5px solid var(--border-color); border-radius: 20px;
+            box-shadow: 0 5px 0 var(--border-color); cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn-spin:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--border-color); }
+        .btn-spin:disabled { background: #BDC3C7; cursor: not-allowed; box-shadow: none; }
+
+        .result-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(5px); z-index: 99999; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer;
+        }
+
+        .result-card {
+            width: 360px; background: #FFFDF9; border: 5px solid var(--border-color);
+            border-radius: 32px; padding: 25px; text-align: center;
+            box-shadow: 0 12px 0 var(--border-color), 0 0 60px #F5B041;
+            animation: cardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes cardPop {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .bounce { animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    </style>
+</head>
+<body>
+
+    <div class="draw-header">
+        <div style="font-size: 20px; font-weight: bold;">🎰 幸运抽奖大轮盘</div>
+        <div>
+            <span>抽奖人: </span>
+            <select class="student-select" id="drawStudentSelect" onchange="updateStudentScoreDisplay()"></select>
+            <span style="font-weight: 900; margin-left: 10px; color: var(--accent-orange);" id="currentScore">积分: 0</span>
+        </div>
+    </div>
+
+    <div class="wheel-stage-container">
+        <div style="font-weight: bold; font-size: 16px; color: #7F8C8D;">每次抽奖消耗 <span style="color:#C0392B; font-weight:900;">100 积分</span></div>
+        
+        <div class="wheel-wrapper">
+            <div class="wheel-pointer"></div>
+            <canvas id="wheelCanvas" width="400" height="400"></canvas>
+        </div>
+
+        <button class="btn-spin" id="btnSpin" onclick="spinWheel()">🎲 开始抽奖 (100积分)</button>
+    </div>
+
+    <!-- 抽奖结果弹窗 -->
+    <div class="result-modal-overlay" id="resultModal" onclick="closeResultModal()">
+        <div class="result-card">
+            <div style="font-size: 60px;" class="bounce" id="resIcon">🎉</div>
+            <div style="font-size: 22px; font-weight: 900; color: var(--text-main); margin-top: 10px;" id="resTitle">抽奖结果</div>
+            <div style="font-size: 14px; font-weight: bold; color: #7F8C8D; margin: 12px 0 20px 0; line-height: 1.5;" id="resDesc">描述说明</div>
+            <div style="font-size: 12px; color: #B7950B; font-weight: bold;">( 点击任意处收下并同步宠物成长 )</div>
+        </div>
+    </div>
+
+    <script>
+        const SLICES = [
+            { text: "+300 积分", type: "score", val: 300, color: "#F5B041", icon: "💰" },
+            { text: "+200 积分", type: "score", val: 200, color: "#52BE80", icon: "💰" },
+            { text: "+100 积分", type: "score", val: 100, color: "#4A90E2", icon: "💰" },
+            { text: "+50 积分", type: "score", val: 50, color: "#F39C12", icon: "💰" },
+            { text: "积分翻倍卡", type: "double", val: 2, color: "#AF7AC5", icon: "🌟" },
+            { text: "-100 积分", type: "score", val: -100, color: "#EC7063", icon: "💸" },
+            { text: "-50 积分", type: "score", val: -50, color: "#E67E22", icon: "💸" },
+            { text: "朗诵课文", type: "challenge", val: 50, color: "#1ABC9C", icon: "📖" },
+            { text: "回答问题", type: "challenge", val: 50, color: "#3498DB", icon: "🙋" },
+            { text: "再转一次", type: "freespin", val: 0, color: "#9B59B6", icon: "🍀" }
+        ];
+
+        let db = null;
+        let isSpinning = false;
+        let currentAngle = 0;
+
+        function loadData() {
+            const saved = localStorage.getItem('classroom_multi_accounts_v1');
+            if (saved) {
+                try { db = JSON.parse(saved); } catch(e) {}
+            }
+            renderStudentOptions();
+            drawWheel();
+        }
+
+        function renderStudentOptions() {
+            const select = document.getElementById('drawStudentSelect');
+            if (!select) return;
+            const prevId = select.value;
+            select.innerHTML = '';
+
+            if (!db || !db.currentClass || !db[db.currentClass] || db[db.currentClass].length === 0) {
+                const opt = document.createElement('option');
+                opt.innerText = '暂无学生';
+                select.appendChild(opt);
+                document.getElementById('currentScore').innerText = '积分: 0';
+                return;
+            }
+
+            const students = db[db.currentClass];
+            students.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = `${s.name} (💰${s.score})`;
+                select.appendChild(opt);
+            });
+
+            if (prevId && students.some(s => s.id == prevId)) {
+                select.value = prevId;
+            }
+
+            updateStudentScoreDisplay();
+        }
+
+        function updateStudentScoreDisplay() {
+            const select = document.getElementById('drawStudentSelect');
+            const studentId = select.value;
+            if (!studentId || !db || !db[db.currentClass]) return;
+            const student = db[db.currentClass].find(s => s.id == studentId);
+            if (student) {
+                document.getElementById('currentScore').innerText = `积分: ${student.score} 分`;
+            }
+        }
+
+        function drawWheel() {
+            const canvas = document.getElementById('wheelCanvas');
+            const ctx = canvas.getContext('2d');
+            const numSlices = SLICES.length;
+            const arc = (2 * Math.PI) / numSlices;
+            const center = canvas.width / 2;
+            const radius = center - 10;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            SLICES.forEach((slice, i) => {
+                const angle = i * arc;
+                ctx.beginPath();
+                ctx.fillStyle = slice.color;
+                ctx.moveTo(center, center);
+                ctx.arc(center, center, radius, angle, angle + arc, false);
+                ctx.lineTo(center, center);
+                ctx.fill();
+                ctx.strokeStyle = '#5A3E2D';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(center, center);
+                ctx.rotate(angle + arc / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 15px sans-serif';
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(slice.text, radius - 20, 6);
+                ctx.restore();
+            });
+        }
+
+        function spinWheel() {
+            if (isSpinning) return;
+            loadData();
+
+            const select = document.getElementById('drawStudentSelect');
+            const studentId = select.value;
+            if (!studentId || !db || !db[db.currentClass]) {
+                return alert('请先选择抽奖的学生！');
+            }
+
+            const student = db[db.currentClass].find(s => s.id == studentId);
+            if (!student) return;
+
+            const cost = 100;
+            if (student.score < cost) {
+                return alert(`积分不足！抽奖需要 ${cost} 积分，而【${student.name}】只有 ${student.score} 积分！`);
+            }
+
+            student.score -= cost;
+            localStorage.setItem('classroom_multi_accounts_v1', JSON.stringify(db));
+            renderStudentOptions();
+
+            isSpinning = true;
+            document.getElementById('btnSpin').disabled = true;
+
+            const targetIndex = Math.floor(Math.random() * SLICES.length);
+            const sliceDegree = 360 / SLICES.length;
+            
+            const centerAngle = targetIndex * sliceDegree + sliceDegree / 2;
+            const extraSpins = 360 * (6 + Math.floor(Math.random() * 3));
+            const targetAngle = extraSpins + (270 - centerAngle);
+
+            currentAngle += targetAngle;
+            const canvas = document.getElementById('wheelCanvas');
+            canvas.style.transform = `rotate(${currentAngle}deg)`;
+
+            setTimeout(() => {
+                isSpinning = false;
+                document.getElementById('btnSpin').disabled = false;
+                processReward(student, targetIndex);
+            }, 4000);
+        }
+
+        function processReward(student, index) {
+            const slice = SLICES[index];
+            const modal = document.getElementById('resultModal');
+            const iconEl = document.getElementById('resIcon');
+            const titleEl = document.getElementById('resTitle');
+            const descEl = document.getElementById('resDesc');
+
+            iconEl.innerText = slice.icon;
+            titleEl.innerText = `抽中：${slice.text}`;
+
+            let scoreChange = 0;
+            let expChange = 0;
+
+            if (slice.type === 'score') {
+                scoreChange = slice.val;
+                student.score += scoreChange;
+                if (student.score < 0) student.score = 0;
+                
+                if (scoreChange > 0) {
+                    expChange = scoreChange;
+                    student.exp = (student.exp || 0) + expChange;
+                }
+
+                descEl.innerHTML = `${scoreChange > 0 ? '🎉 财源广进！' : '💸 哎呀倒霉！'}<br>【${student.name}】钱包变动：<span style="color:${scoreChange > 0 ? '#27AE60':'#C0392B'}; font-weight:900;">${scoreChange > 0 ? '+' + scoreChange : scoreChange} 积分</span><br>${expChange > 0 ? `宠物同步获得 <span style="color:#8E44AD; font-weight:900;">+${expChange} EXP</span> 经验！` : ''}`;
+            } else if (slice.type === 'double') {
+                const oldScore = student.score;
+                student.score *= 2;
+                scoreChange = oldScore;
+                expChange = Math.max(0, scoreChange);
+                if (expChange > 0) {
+                    student.exp = (student.exp || 0) + expChange;
+                }
+                descEl.innerHTML = `👑【欧皇降临！积分直接翻倍！】<br>【${student.name}】的总积分从 ${oldScore} 翻倍至 <span style="color:#27AE60; font-weight:900;">${student.score} 分</span>！<br>宠物同步获得 <span style="color:#8E44AD; font-weight:900;">+${expChange} EXP</span> 经验！`;
+            } else if (slice.type === 'challenge') {
+                expChange = slice.val;
+                student.exp = (student.exp || 0) + expChange;
+                descEl.innerHTML = `🧠【趣味魔法挑战】：<br>请【${student.name}】现场完成：【${slice.text}】！<br>顺利完成后宠物额外获得 <span style="color:#8E44AD; font-weight:900;">+${expChange} EXP</span> 经验！`;
+            } else if (slice.type === 'freespin') {
+                student.score += 100;
+                descEl.innerHTML = `🍀【运气不错！再转一次！】<br>本次抽奖免单！已全额退还 100 积分！`;
+            }
+
+            updateStudentCodex(student);
+            localStorage.setItem('classroom_multi_accounts_v1', JSON.stringify(db));
+            renderStudentOptions();
+            modal.style.display = 'flex';
+        }
+
+        function updateStudentCodex(student) {
+            if (!student || !student.petTypeId) return;
+            student.codex = student.codex || {};
+            if (!student.codex[student.petTypeId]) {
+                student.codex[student.petTypeId] = [];
+            }
+            const currentStage = getPetStageIndex(student.exp || 0);
+            for (let i = 0; i <= currentStage; i++) {
+                if (!student.codex[student.petTypeId].includes(i)) {
+                    student.codex[student.petTypeId].push(i);
+                }
+            }
+        }
+
+        function getPetStageIndex(expValue) {
+            const exp = expValue || 0;
+            if (exp >= 500) return 3;
+            if (exp >= 300) return 2;
+            if (exp >= 100) return 1;
+            return 0;
+        }
+
+        function closeResultModal() {
+            document.getElementById('resultModal').style.display = 'none';
+            loadData();
+        }
+
+        // 💡 核心：监听页面每次获得焦点或切换回来时，自动重新加载数据库，防止学生名单滞后
+        window.onpageshow = loadData;
+        window.onfocus = loadData;
+        window.onload = loadData;
+    </script>
+</body>
+</html>

@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味课堂 - 教学工作台</title>
+    <style>
+        :root {
+            --bg-color: #FAF6EE;       
+            --border-color: #5A3E2D;   
+            --card-bg: #FFFFFF;        
+            --text-main: #3C281E;      
+            --accent-blue: #4A90E2;    
+            --accent-yellow: #F5B041;  
+            --accent-orange: #EB984E;  
+            --accent-green: #52BE80;
+            --accent-red: #EC7063;
+            --accent-purple: #AF7AC5;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: var(--text-main);
+            margin: 0; padding: 0;
+            background-color: var(--bg-color);
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; box-sizing: border-box;
+        }
+
+        /* 顶部 8 大导航栏 */
+        .top-navbar {
+            width: 100%; background-color: #FFFDF9; border-bottom: 2px solid #EAE6DF;
+            display: flex; justify-content: center; padding: 12px 0;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .nav-container { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+        .nav-item {
+            display: flex; align-items: center; gap: 4px; padding: 8px 12px;
+            font-size: 13.5px; font-weight: bold; color: var(--text-main);
+            text-decoration: none; border-radius: 18px; cursor: pointer;
+            transition: all 0.2s; border: 2px solid transparent;
+        }
+        .nav-item:hover { background-color: rgba(90, 62, 45, 0.05); }
+        .nav-item.active {
+            background-color: #C0392B; color: white;
+            box-shadow: 0 4px 0px var(--border-color); border: 2px solid var(--border-color);
+        }
+
+        .main-layout {
+            display: flex; width: 100%; max-width: 1500px; padding: 25px;
+            gap: 25px; box-sizing: border-box; align-items: flex-start;
+        }
+
+        .left-panel-container { flex: 1.3; min-height: 78vh; }
+        .score-manager-block {
+            background: var(--card-bg); border: 4px solid var(--border-color);
+            border-radius: 32px; box-shadow: 0 12px 0px var(--border-color);
+            padding: 25px; box-sizing: border-box; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+        }
+
+        .sub-page-window {
+            width: 100%; height: 78vh; border: 4px solid var(--border-color);
+            border-radius: 32px; box-shadow: 0 12px 0px var(--border-color);
+            background: white; display: none;
+        }
+
+        .right-panel { flex: 0.7; display: flex; flex-direction: column; gap: 25px; }
+
+        .title-action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .panel-title {
+            background-color: var(--accent-blue); color: white; display: inline-block;
+            padding: 8px 24px; border-radius: 18px; font-size: 20px; margin: 0;
+            border: 3px solid var(--border-color); box-shadow: 0 4px 0px var(--border-color); font-weight: bold;
+        }
+
+        .class-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+        .account-selector {
+            padding: 8px 14px; font-size: 14px; font-weight: bold; color: var(--text-main);
+            background-color: var(--accent-yellow); border: 3px solid var(--border-color);
+            border-radius: 14px; box-shadow: 0 3px 0px var(--border-color); outline: none; cursor: pointer;
+        }
+
+        .btn-header-action {
+            padding: 8px 14px; font-size: 13px; font-weight: bold; border-radius: 14px;
+            border: 2.5px solid var(--border-color); box-shadow: 0 3px 0 var(--border-color);
+            cursor: pointer; display: flex; align-items: center; gap: 4px;
+        }
+
+        .btn-create-class { background: var(--accent-green); color: white; }
+        .btn-delete-class { background: var(--accent-red); color: white; }
+        .btn-daily-settle { background: var(--accent-purple); color: white; }
+
+        .add-student-box { display: flex; gap: 12px; margin-bottom: 20px; }
+        input[type="text"] {
+            padding: 12px 18px; border: 3px solid var(--border-color); border-radius: 16px;
+            font-size: 15px; background-color: #FFFDF9; color: var(--text-main); outline: none; flex: 1;
+        }
+
+        button {
+            font-family: inherit; cursor: pointer; border: 3px solid var(--border-color);
+            font-weight: bold; transition: transform 0.1s, box-shadow 0.1s;
+        }
+        button:active { transform: translateY(3px); box-shadow: 0 1px 0px var(--border-color) !important; }
+
+        .btn-add {
+            background-color: var(--accent-yellow); color: var(--text-main);
+            padding: 10px 24px; border-radius: 16px; box-shadow: 0 4px 0px var(--border-color); font-size: 15px;
+        }
+
+        .student-grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            max-height: 430px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .student-grid-card {
+            background: #FFFDF9;
+            border: 4px solid var(--border-color);
+            border-radius: 28px;
+            padding: 16px;
+            box-shadow: 0 8px 0px var(--border-color);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            box-sizing: border-box;
+            user-select: none;
+            position: relative;
+        }
+
+        .student-grid-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 0px var(--border-color);
+            background: #FFFFFF;
+        }
+
+        .pet-avatar-wrapper {
+            height: 70%;
+            width: 100%;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .pet-img {
+            width: 100%;
+            height: 100%;
+            max-width: 250px;
+            max-height: 250px;
+            object-fit: contain;
+            mix-blend-mode: multiply;
+        }
+
+        .dying-pet {
+            filter: grayscale(100%) opacity(0.65) !important;
+            animation: none !important;
+        }
+
+        .dying-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #EC7063;
+            color: white;
+            font-size: 13px;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 3px 0 var(--border-color);
+            z-index: 10;
+            animation: bounce 1.5s infinite;
+        }
+
+        .floating-pet {
+            animation: floatPet 2.6s ease-in-out infinite;
+        }
+
+        @keyframes floatPet {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .no-pet-box {
+            width: 100%;
+            height: 100%;
+            border: 3px dashed var(--border-color);
+            border-radius: 22px;
+            background: rgba(245, 176, 65, 0.12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-main);
+            font-size: 15px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .no-pet-box:hover {
+            background: var(--accent-yellow);
+            transform: scale(1.02);
+        }
+
+        .fallback-icon {
+            font-size: 80px;
+        }
+
+        .card-bottom-info {
+            height: 30%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .name-score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .student-card-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100px;
+        }
+
+        .student-card-score {
+            font-size: 14px;
+            font-weight: 900;
+            background: #FFF;
+            border: 2.5px solid var(--border-color);
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: var(--accent-orange);
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .stat-bars-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .stat-line-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stat-label-flex {
+            display: flex;
+            justify-content: space-between;
+            line-height: 1;
+        }
+
+        .mini-bar-bg {
+            background: #EAECEE;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            height: 10px;
+            overflow: hidden;
+        }
+        .mini-bar-fill { height: 100%; transition: width 0.3s; }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .student-modal-card {
+            background: #FFFDF9; border: 4px solid var(--border-color); border-radius: 28px;
+            padding: 22px; width: 460px; box-shadow: 0 10px 0 var(--border-color);
+            display: flex; flex-direction: column; gap: 12px; text-align: center;
+        }
+
+        .modal-btn-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+        .btn-score-pop { padding: 6px 12px; border-radius: 12px; font-size: 13px; box-shadow: 0 3px 0 var(--border-color); }
+
+        .inventory-list-box {
+            background: #FAF6EE; border: 2px solid var(--border-color);
+            border-radius: 16px; padding: 10px; font-size: 12px; font-weight: bold;
+            display: flex; flex-direction: column; gap: 6px; text-align: left;
+        }
+
+        .inventory-row {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .btn-use-item {
+            padding: 4px 10px; font-size: 11px; border-radius: 8px;
+            border: 2px solid var(--border-color); background: var(--accent-yellow);
+            cursor: pointer; box-shadow: 0 2px 0 var(--border-color);
+        }
+
+        .evolution-overlay {
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 99999; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            box-sizing: border-box;
+            perspective: 1200px;
+        }
+
+        .evo-card-frame {
+            width: 320px;
+            height: 440px;
+            background: #FFFDF9;
+            border: 5px solid var(--border-color);
+            border-radius: 32px;
+            box-shadow: 0 12px 0 var(--border-color), 0 0 50px rgba(245, 176, 65, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 22px;
+            box-sizing: border-box;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .card-spinning {
+            animation: cardRotate3D 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes cardRotate3D {
+            0% { transform: rotateY(0deg) scale(0.9); }
+            50% { transform: rotateY(900deg) scale(1.1); }
+            100% { transform: rotateY(1800deg) scale(1); }
+        }
+
+        .evo-title-badge {
+            font-size: 18px;
+            font-weight: 900;
+            color: #C0392B;
+            background: #FDEBD0;
+            border: 3px solid var(--border-color);
+            padding: 6px 18px;
+            border-radius: 12px;
+            box-shadow: 0 3px 0 var(--border-color);
+        }
+
+        .evo-stage-area {
+            width: 100%;
+            height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .evolving-img {
+            max-width: 230px;
+            max-height: 230px;
+            object-fit: contain;
+            mix-blend-mode: multiply;
+        }
+
+        .evo-footer-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .rules-card {
+            background: #FFFDF9; border: 4px solid var(--border-color);
+            border-radius: 28px; padding: 25px; box-shadow: 0 8px 0px var(--border-color);
+        }
+        .rules-title {
+            font-size: 20px; font-weight: bold; text-align: center; margin-top: 0; margin-bottom: 20px;
+            background: var(--accent-yellow); padding: 8px 0; border: 3px solid var(--border-color);
+            border-radius: 14px; box-shadow: 0 4px 0 var(--border-color);
+        }
+        .rule-section { margin-bottom: 20px; }
+        .rule-section h3 {
+            font-size: 15px; margin: 0 0 10px 0; display: inline-block;
+            padding: 4px 14px; border-radius: 10px; color: white; border: 2px solid var(--border-color);
+        }
+        .rule-plus h3 { background-color: var(--accent-green); }
+        .rule-minus h3 { background-color: var(--accent-red); }
+        .rule-list { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; }
+        .rule-list li { margin-bottom: 8px; }
+
+        .class-target-panel {
+            background: #FFFDF9; border: 4px solid var(--border-color);
+            border-radius: 28px; padding: 22px; box-shadow: 0 8px 0px var(--border-color);
+        }
+        .target-title {
+            font-weight: bold; font-size: 18px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .total-score-num {
+            color: var(--accent-orange); font-size: 24px; font-weight: 900;
+            background: #FFF; border: 2.5px solid var(--border-color); padding: 2px 14px; border-radius: 8px;
+        }
+        .progress-bar-container {
+            background: #EAECEE; border: 3px solid var(--border-color);
+            border-radius: 14px; height: 24px; overflow: hidden; position: relative; margin-bottom: 10px;
+        }
+        .progress-bar-fill {
+            background: linear-gradient(90deg, var(--accent-yellow) 0%, #F39C12 100%);
+            height: 100%; width: 0%; transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .target-info { font-size: 14px; color: #5D6D7E; display: flex; justify-content: space-between; font-weight: bold; }
+        .next-goal { color: #C0392B; }
+
+        .game-iframe-target:fullscreen {
+            width: 100vw !important; height: 100vh !important;
+            border: none !important; border-radius: 0 !important; box-shadow: none !important;
+        }
+
+        .fullscreen-control-bar {
+            display: none; background: #FFFDF9; border: 3px solid var(--border-color);
+            border-radius: 20px; padding: 15px; box-shadow: 0 5px 0 var(--border-color);
+            text-align: center;
+        }
+
+        .btn-fullscreen-trigger {
+            background: var(--accent-orange); color: white; border: 2px solid var(--border-color);
+            padding: 10px 20px; border-radius: 12px; font-size: 15px; font-weight: bold;
+            box-shadow: 0 4px 0 var(--border-color); width: 100%;
+        }
+
+        .bounce { animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部 8 大导航按钮 -->
+    <div class="top-navbar">
+        <div class="nav-container">
+            <div id="nav-score" class="nav-item active" onclick="showPanel('score')">🏠 1. 分数与宠物</div>
+            <div id="nav-game" class="nav-item" onclick="showPanel('game')">🎮 2. 游戏时间</div>
+            <div id="nav-duel" class="nav-item" onclick="showPanel('duel')">⚔️ 3. 宠物对决</div>
+            <div id="nav-task" class="nav-item" onclick="showPanel('task')">📋 4. 任务打卡</div>
+            <div id="nav-shop" class="nav-item" onclick="showPanel('shop')">🛒 5. 萌宠商城</div>
+            <div id="nav-draw" class="nav-item" onclick="showPanel('draw')">🎰 6. 幸运抽奖</div>
+            <div id="nav-dungeon" class="nav-item" onclick="showPanel('dungeon')">🏰 7. 副本题库</div>
+            <div id="nav-codex" class="nav-item" onclick="showPanel('codex')">📖 8. 萌宠图鉴</div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="left-panel-container">
+            
+            <div id="panel-score" class="score-manager-block">
+                <div class="title-action-bar">
+                    <div class="panel-title">学生积分控制台</div>
+                    
+                    <div class="class-controls">
+                        <select class="account-selector" id="classSelector" onchange="switchClass(this.value)"></select>
+                        <button class="btn-header-action btn-create-class" onclick="createNewClass()">➕ 创立班级</button>
+                        <button class="btn-header-action btn-delete-class" onclick="deleteCurrentClass()">🗑️ 删除班级</button>
+                        <button class="btn-header-action btn-daily-settle" onclick="dailySettleClass()">🌙 每日结算 (-50饱腹)</button>
+                    </div>
+                </div>
+
+                <div class="add-student-box">
+                    <input type="text" id="studentNameInput" placeholder="输入新学生的名字..." maxlength="15">
+                    <button class="btn-add" onclick="addStudent()">添加学生</button>
+                </div>
+
+                <div class="student-grid-container" id="studentGrid"></div>
+            </div>
+
+            <iframe id="panel-game" class="sub-page-window game-iframe-target" src="page_game.html" allowfullscreen></iframe>
+            <iframe id="panel-duel" class="sub-page-window" src="page_duel.html"></iframe>
+            <iframe id="panel-task" class="sub-page-window" src="page_task.html"></iframe>
+            <iframe id="panel-shop" class="sub-page-window" src="page_shop.html"></iframe>
+            <iframe id="panel-draw" class="sub-page-window" src="page_draw.html"></iframe>
+            <iframe id="panel-dungeon" class="sub-page-window" src="page_dungeon.html"></iframe>
+            <iframe id="panel-codex" class="sub-page-window" src="page_codex.html"></iframe>
+        </div>
+
+        <div class="right-panel">
+            <div class="fullscreen-control-bar" id="fullscreen-box">
+                <button class="btn-fullscreen-trigger" onclick="launchGameFullscreen()">🖥️ 开启全屏大巨幕模式</button>
+                <div style="font-size: 12px; margin-top: 8px; color: #7F8C8D; font-weight: bold;">(玩游戏时点击此项, 画面将完美铺满屏幕)</div>
+            </div>
+
+            <div class="rules-card">
+                <h2 class="rules-title">📜 课堂核心规则</h2>
+                <div class="rule-section rule-plus">
+                    <h3>👍 加分明细</h3>
+                    <ul class="rule-list">
+                        <li>听写每题 <b>+10分</b>, 全对额外加 <b>+100分</b></li>
+                        <li>默写挑战固定基础积分为 <b>+100分</b></li>
+                        <li>主动举手并正确回答问题 <b>+10分</b></li>
+                        <li>课堂表现专心且保持安静 <b>+20分</b></li>
+                        <li>课堂练习：第一次尝试对每题 <b>+10分</b>, 第二次 <b>+5分</b></li>
+                    </ul>
+                </div>
+                <div class="rule-section rule-minus">
+                    <h3>👎 扣分明细</h3>
+                    <ul class="rule-list">
+                        <li>默写错字, 写错或未写, 每处 <b>-10分</b></li>
+                        <li>听写任务无故没有读 <b>-20分</b></li>
+                        <li>上课分心、态度不认真 <b>-10分</b></li>
+                        <li>课堂喧哗吵闹或与旁人打闹 <b>-20分</b></li>
+                        <li>言语不文明, 骂粗话 <b>-50分</b></li>
+                        <li>性质严重, 和同学打架 <b>-100分</b></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="class-target-panel">
+                <div class="target-title">
+                    <span>🏆 全班总积分目标</span>
+                    <span class="total-score-num" id="totalScore">0</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+                <div class="target-info">
+                    <span id="scoreRatio">0 / 3000</span>
+                    <span class="next-goal" id="goalStatus">距离下个目标差: 3000分</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学生操作面板 Modal -->
+    <div class="modal-overlay" id="studentActionModal">
+        <div class="student-modal-card">
+            <div style="font-size:20px; font-weight:bold;" id="popStudentName">学生操作面板</div>
+            <div style="font-size: 45px;" class="bounce" id="popPetIcon">🥚</div>
+            <div style="font-size: 13px; font-weight: bold; color: var(--accent-purple);" id="popPetStage">蛋壳形态</div>
+
+            <!-- 满级毕业重养按钮 -->
+            <div id="gradSection" style="display:none;">
+                <button onclick="reAdoptPetPop()" style="width:100%; padding:10px; background:linear-gradient(90deg, #F5B041, #EB984E); color:white; border-radius:12px; font-size:14px; font-weight:bold; border:2.5px solid var(--border-color); box-shadow:0 3px 0 var(--border-color);">🎓 宠物已满级！点击毕业并养新宠物 (图鉴永久保留)</button>
+            </div>
+
+            <!-- 加扣分按钮 -->
+            <div class="modal-btn-row">
+                <button class="btn-score-pop" style="background:#D4EFDF; color:#196F3D;" onclick="changeScorePop(5)">+5</button>
+                <button class="btn-score-pop" style="background:#A9DFBF; color:#145A32;" onclick="changeScorePop(10)">+10</button>
+                <button class="btn-score-pop" style="background:#52BE80; color:white;" onclick="changeScorePop(50)">+50</button>
+                <button class="btn-score-pop" style="background:#FADBD8; color:#78281F;" onclick="changeScorePop(-5)">-5</button>
+                <button class="btn-score-pop" style="background:#F5B7B1; color:#641E16;" onclick="changeScorePop(-10)">-10</button>
+                <button class="btn-score-pop" style="background:#EC7063; color:white;" onclick="changeScorePop(-50)">-50</button>
+            </div>
+
+            <!-- 濒死复活专属区域 -->
+            <div id="reviveSection" style="display:none;">
+                <button onclick="revivePetPop()" style="width:100%; padding:10px; background:var(--accent-red); color:white; border-radius:12px; font-size:15px; font-weight:bold;">💖 老师特权：一键复活宠物</button>
+            </div>
+
+            <!-- 🎒 动态个人物品背包区 -->
+            <div id="inventorySection">
+                <div style="font-weight:bold; font-size:13px; margin-bottom:6px; color:var(--text-main);">🎒 个人背包存粮与道具:</div>
+                <div class="inventory-list-box" id="inventoryContainer"></div>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:6px;">
+                <button onclick="openPetSelectModal()" style="flex:1; padding:8px; background:var(--accent-blue); color:white; border-radius:10px; font-size:13px;">🐾 选择/更换宠物</button>
+                <button onclick="deleteCurrentStudent()" style="padding:8px 12px; background:var(--accent-red); color:white; border-radius:10px; font-size:13px;">🗑️ 删除学生</button>
+                <button onclick="closeStudentModal()" style="flex:1; padding:8px; background:#7F8C8D; color:white; border-radius:10px; font-size:13px;">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 选宠物 Modal -->
+    <div class="modal-overlay" id="petSelectModal">
+        <div class="student-modal-card" style="width: 420px; max-height: 80vh;">
+            <div style="font-size:20px; font-weight:bold;">🐾 选择你的专属宠物</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; overflow-y:auto; max-height:50vh; padding:5px;" id="petSelectGrid"></div>
+            <button onclick="closePetSelectModal()" style="margin-top:10px; padding:8px; background:#7F8C8D; color:white; border-radius:10px;">取消</button>
+        </div>
+    </div>
+
+    <!-- 3D 卡牌旋转进化全屏遮罩 -->
+    <div class="evolution-overlay" id="evolutionOverlay" onclick="closeEvolutionModal()">
+        <div class="evo-card-frame" id="evoCard">
+            <div class="evo-title-badge" id="evoTitle">⚡ 宠物进化中...</div>
+            <div class="evo-stage-area">
+                <img id="evoImage" class="evolving-img" src="" alt="Evolving Pet"/>
+            </div>
+            <div class="evo-footer-text" id="evoFooter">正在旋转蜕变...</div>
+        </div>
+        <div style="margin-top: 25px; font-size: 14px; color: #FFFDF9; font-weight: bold; cursor: pointer;">( 点击任意处完成进化 )</div>
+    </div>
+
+    <script>
+        // 自动连接并生成 30 只宝可梦的路径与配置
+        const PET_IMAGE_DATABASE = [];
+        for (let i = 1; i <= 30; i++) {
+            PET_IMAGE_DATABASE.push({
+                id: 'pet' + i,
+                name: `宝可梦 ${i} 号`,
+                defaultIcon: '🐾',
+                stages: {
+                    0: `assets/pets/pet${i}/egg.png`,
+                    1: `assets/pets/pet${i}/stage1.png`,
+                    2: `assets/pets/pet${i}/stage2.png`,
+                    3: `assets/pets/pet${i}/stage3.png`
+                }
+            });
+        }
+
+        let classroomDatabase = {
+            currentClass: "class_A",
+            classesList: [
+                { id: "class_A", name: "🎒 A 班级账户" },
+                { id: "class_B", name: "🎒 B 班级账户" }
+            ],
+            class_A: [],
+            class_B: []
+        };
+        
+        let activeStudentId = null;
+        let totalScore = 0;
+        const goals = [3000, 6000, 9000];
+
+        function getDefaultInventory() {
+            return { bread: 0, pizza: 0, potion: 0, biscuit: 0, snackVoucher: 0, gameCard: 0, doubleBuff: 0 };
+        }
+
+        function updateStudentCodex(student) {
+            if (!student || !student.petTypeId) return;
+            student.codex = student.codex || {};
+            if (!student.codex[student.petTypeId]) {
+                student.codex[student.petTypeId] = [];
+            }
+
+            const currentStage = getPetStageIndex(student.exp || 0);
+            for (let i = 0; i <= currentStage; i++) {
+                if (!student.codex[student.petTypeId].includes(i)) {
+                    student.codex[student.petTypeId].push(i);
+                }
+            }
+        }
+
+        function loadData() {
+            const savedData = localStorage.getItem('classroom_multi_accounts_v1');
+            if (savedData) {
+                try {
+                    classroomDatabase = JSON.parse(savedData);
+                } catch(e) { console.error(e); }
+            }
+
+            if (!classroomDatabase.classesList || !Array.isArray(classroomDatabase.classesList)) {
+                classroomDatabase.classesList = [
+                    { id: "class_A", name: "🎒 A 班级账户" },
+                    { id: "class_B", name: "🎒 B 班级账户" }
+                ];
+            }
+
+            if (!classroomDatabase.currentClass) {
+                classroomDatabase.currentClass = "class_A";
+            }
+
+            classroomDatabase.classesList.forEach(cls => {
+                const classKey = cls.id;
+                if (!Array.isArray(classroomDatabase[classKey])) {
+                    classroomDatabase[classKey] = [];
+                }
+                classroomDatabase[classKey].forEach(student => {
+                    if (typeof student.hp !== 'number' || isNaN(student.hp)) student.hp = 100;
+                    if (typeof student.fullness !== 'number' || isNaN(student.fullness)) student.fullness = 100;
+                    if (typeof student.exp !== 'number' || isNaN(student.exp)) student.exp = student.score || 0;
+                    
+                    student.inventory = Object.assign(getDefaultInventory(), student.inventory || {});
+                    student.codex = student.codex || {};
+
+                    updateStudentCodex(student);
+                });
+            });
+        }
+
+        function saveData() { 
+            localStorage.setItem('classroom_multi_accounts_v1', JSON.stringify(classroomDatabase)); 
+        }
+
+        function showPanel(type) {
+            const panels = ['score', 'game', 'duel', 'task', 'shop', 'draw', 'dungeon', 'codex'];
+            panels.forEach(p => {
+                const el = document.getElementById('panel-' + p);
+                if (el) el.style.display = 'none';
+            });
+
+            const activePanel = document.getElementById('panel-' + type);
+            if (activePanel) activePanel.style.display = 'block';
+
+            if (type === 'game') {
+                document.getElementById('fullscreen-box').style.display = 'block';
+            } else {
+                document.getElementById('fullscreen-box').style.display = 'none';
+            }
+
+            if (type === 'score') {
+                loadData();
+                renderClassSelector();
+                renderStudents();
+                updateClassTarget();
+            } else if (type === 'shop') {
+                saveData();
+                const shopFrame = document.getElementById('panel-shop');
+                if (shopFrame) shopFrame.src = "page_shop.html";
+            } else if (type === 'codex') {
+                saveData();
+                const codexFrame = document.getElementById('panel-codex');
+                if (codexFrame) codexFrame.src = "page_codex.html";
+            }
+
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+            const activeNav = document.getElementById('nav-' + type);
+            if (activeNav) activeNav.classList.add('active');
+        }
+
+        function launchGameFullscreen() {
+            const targetIframe = document.getElementById('panel-game');
+            if (targetIframe) {
+                if (targetIframe.requestFullscreen) { targetIframe.requestFullscreen(); }
+                else if (targetIframe.webkitRequestFullscreen) { targetIframe.webkitRequestFullscreen(); }
+            }
+        }
+
+        function renderClassSelector() {
+            const selector = document.getElementById('classSelector');
+            if (!selector) return;
+            selector.innerHTML = '';
+            (classroomDatabase.classesList || []).forEach(cls => {
+                const opt = document.createElement('option');
+                opt.value = cls.id;
+                opt.innerText = cls.name;
+                if (cls.id === classroomDatabase.currentClass) opt.selected = true;
+                selector.appendChild(opt);
+            });
+        }
+
+        function switchClass(classKey) {
+            loadData();
+            classroomDatabase.currentClass = classKey;
+            saveData();
+            renderStudents();
+            updateClassTarget();
+        }
+
+        function createNewClass() {
+            const name = prompt("请输入新班级的名字（例如：三年级红班）：");
+            if (!name || name.trim() === '') return;
+
+            loadData();
+            const newClassId = "class_" + Date.now();
+            classroomDatabase.classesList.push({ id: newClassId, name: "🎒 " + name.trim() });
+            classroomDatabase[newClassId] = [];
+            classroomDatabase.currentClass = newClassId;
+
+            saveData();
+            renderClassSelector();
+            renderStudents();
+            updateClassTarget();
+            alert(`🎉 成功创建班级【${name.trim()}】！`);
+        }
+
+        function deleteCurrentClass() {
+            loadData();
+            if (!classroomDatabase.classesList || classroomDatabase.classesList.length <= 1) {
+                return alert("⚠️ 至少需要保留一个班级账户，无法删除！");
+            }
+
+            const currentActiveKey = classroomDatabase.currentClass;
+            const currentClassObj = classroomDatabase.classesList.find(c => c.id === currentActiveKey);
+            const className = currentClassObj ? currentClassObj.name : "当前班级";
+
+            if (confirm(`⚠️ 确定要删除【${className}】吗？\n删除后该班级的所有学生及其宠物数据将被永久移除！`)) {
+                classroomDatabase.classesList = classroomDatabase.classesList.filter(c => c.id !== currentActiveKey);
+                delete classroomDatabase[currentActiveKey];
+                
+                classroomDatabase.currentClass = classroomDatabase.classesList[0].id;
+
+                saveData();
+                renderClassSelector();
+                renderStudents();
+                updateClassTarget();
+                alert(`🗑️ 已成功删除该班级！`);
+            }
+        }
+
+        function dailySettleClass() {
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const students = classroomDatabase[currentActiveKey] || [];
+
+            if (students.length === 0) {
+                return alert("当前班级还没有学生，请先添加学生！");
+            }
+
+            if (!confirm(`确定进行【每日结算】吗？\n全班宠物的饱腹值将 -50！若饱腹归 0 则扣除 20 生命值！`)) {
+                return;
+            }
+
+            let affectedCount = 0;
+            students.forEach(student => {
+                if (student.petTypeId) {
+                    affectedCount++;
+                    if (student.fullness > 0) {
+                        student.fullness -= 50;
+                        if (student.fullness < 0) student.fullness = 0;
+                    } else {
+                        student.hp -= 20;
+                        if (student.hp < 0) student.hp = 0;
+                    }
+                }
+            });
+
+            saveData();
+            renderStudents();
+            alert(`🌙 结算成功！已更新 ${affectedCount} 只宠物的状态！`);
+        }
+
+        window.onload = function() {
+            loadData();
+            saveData();
+            renderClassSelector();
+            renderStudents();
+            updateClassTarget();
+            initPetSelectionOptions();
+        };
+
+        function addStudent() {
+            loadData();
+            const input = document.getElementById('studentNameInput');
+            const name = input.value.trim();
+            if (name === '') return;
+            const newStudent = { 
+                id: Date.now(), 
+                name: name, 
+                score: 0, 
+                exp: 0,
+                petTypeId: null, 
+                hp: 100, 
+                fullness: 100,
+                inventory: getDefaultInventory(),
+                codex: {}
+            };
+            
+            const currentActiveKey = classroomDatabase.currentClass;
+            classroomDatabase[currentActiveKey].push(newStudent);
+            
+            input.value = '';
+            saveData(); 
+            renderStudents(); 
+            updateClassTarget();
+        }
+
+        document.getElementById('studentNameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addStudent();
+        });
+
+        function getPetStageIndex(expValue) {
+            const exp = expValue || 0;
+            if (exp >= 500) return 3; // 第三阶段 (500)
+            if (exp >= 300) return 2; // 第二阶段 (300)
+            if (exp >= 100) return 1; // 第一阶段 (100)
+            return 0;                 // 蛋壳形态 (<100)
+        }
+
+        function getPetStageText(stageIndex) {
+            const names = ['蛋壳形态', '第一阶段', '第二阶段', '第三阶段 (终极)'];
+            return names[stageIndex] || '蛋壳形态';
+        }
+
+        function openStudentModal(studentId) {
+            loadData();
+            activeStudentId = studentId;
+            const currentActiveKey = classroomDatabase.currentClass;
+            const student = classroomDatabase[currentActiveKey].find(s => s.id == studentId);
+            if (!student) return;
+
+            document.getElementById('popStudentName').innerText = `${student.name} (💰积分: ${student.score} | ⭐EXP: ${student.exp || 0})`;
+            
+            const reviveSec = document.getElementById('reviveSection');
+            const invSec = document.getElementById('inventorySection');
+            const gradSec = document.getElementById('gradSection');
+
+            const hpVal = (typeof student.hp === 'number' && !isNaN(student.hp)) ? student.hp : 100;
+            const expVal = student.exp || 0;
+
+            if (student.petTypeId) {
+                const stageIdx = getPetStageIndex(expVal);
+                document.getElementById('popPetStage').innerText = getPetStageText(stageIdx);
+                const petConfig = PET_IMAGE_DATABASE.find(p => p.id === student.petTypeId);
+                document.getElementById('popPetIcon').innerText = petConfig ? petConfig.defaultIcon : '🥚';
+
+                if (expVal >= 600) {
+                    gradSec.style.display = 'block';
+                } else {
+                    gradSec.style.display = 'none';
+                }
+
+                if (hpVal <= 0) {
+                    reviveSec.style.display = 'block';
+                    invSec.style.display = 'none';
+                    document.getElementById('popPetStage').innerText = '☠️ 濒死（需复活）';
+                } else {
+                    reviveSec.style.display = 'none';
+                    invSec.style.display = 'block';
+                    renderStudentInventoryUI(student);
+                }
+            } else {
+                document.getElementById('popPetStage').innerText = '尚未领养宠物';
+                document.getElementById('popPetIcon').innerText = '🐾';
+                reviveSec.style.display = 'none';
+                invSec.style.display = 'none';
+                gradSec.style.display = 'none';
+            }
+
+            document.getElementById('studentActionModal').style.display = 'flex';
+        }
+
+        function reAdoptPetPop() {
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const student = classroomDatabase[currentActiveKey].find(s => s.id == activeStudentId);
+            if (student) {
+                if (confirm(`🎉 恭喜【${student.name}】的宠物已达 600 满级经验！\n点击确定将把所有解锁形态永久保存至【个人图鉴】，并重新领养新的宠物！`)) {
+                    updateStudentCodex(student);
+                    student.exp = 0; 
+                    student.petTypeId = null; 
+                    student.hp = 100;
+                    student.fullness = 100;
+
+                    saveData();
+                    renderStudents();
+                    closeStudentModal();
+                    openPetSelectModalDirectly(student.id); 
+                }
+            }
+        }
+
+        function renderStudentInventoryUI(student) {
+            const container = document.getElementById('inventoryContainer');
+            container.innerHTML = '';
+            const inv = student.inventory || getDefaultInventory();
+
+            const itemsDef = [
+                { key: 'bread', icon: '🍞', name: '香甜面包', effect: '+20饱腹', type: 'food', gain: 20 },
+                { key: 'pizza', icon: '🍕', name: '美味披萨', effect: '+50饱腹', type: 'food', gain: 50 },
+                { key: 'biscuit', icon: '🍪', name: '酥脆小饼干', effect: '+5饱腹', type: 'food', gain: 5 },
+                { key: 'potion', icon: '💖', name: '治愈药水', effect: '+20生命(HP)', type: 'heal', gain: 20 },
+                { key: 'doubleBuff', icon: '🌟', name: '双倍积分卡', effect: '下节课双倍加分', type: 'buff' },
+                { key: 'gameCard', icon: '🎮', name: '指定游戏卡', effect: '线下向老师指定游戏', type: 'privilege' },
+                { key: 'snackVoucher', icon: '🍬', name: '零食贴纸券', effect: '线下兑换糖果小礼品', type: 'privilege' }
+            ];
+
+            let hasAnyItem = false;
+
+            itemsDef.forEach(item => {
+                const count = inv[item.key] || 0;
+                if (count > 0) {
+                    hasAnyItem = true;
+                    const row = document.createElement('div');
+                    row.className = 'inventory-row';
+
+                    let btnHtml = '';
+                    if (item.type === 'food') {
+                        btnHtml = `<button class="btn-use-item" onclick="useFoodItem('${item.key}', ${item.gain})">投喂</button>`;
+                    } else if (item.type === 'heal') {
+                        btnHtml = `<button class="btn-use-item" style="background:var(--accent-red); color:white;" onclick="useHealPotion(${item.gain})">治疗</button>`;
+                    } else {
+                        btnHtml = `<button class="btn-use-item" style="background:var(--accent-purple); color:white;" onclick="usePrivilegeCard('${item.key}', '${item.name}')">使用</button>`;
+                    }
+
+                    row.innerHTML = `
+                        <span>${item.icon} ${item.name} x${count} <span style="color:#7F8C8D; font-size:11px;">(${item.effect})</span></span>
+                        ${btnHtml}
+                    `;
+                    container.appendChild(row);
+                }
+            });
+
+            if (!hasAnyItem) {
+                container.innerHTML = `<div style="text-align:center; color:#7F8C8D; font-size:12px;">背包空空如也，快去【🛒 5. 萌宠商城】买好吃的吧！</div>`;
+            }
+        }
+
+        function closeStudentModal() {
+            document.getElementById('studentActionModal').style.display = 'none';
+        }
+
+        function changeScorePop(pts) {
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const student = classroomDatabase[currentActiveKey].find(s => s.id == activeStudentId);
+            if (student) {
+                const oldExp = student.exp || 0;
+
+                if (pts > 0) {
+                    student.exp = (student.exp || 0) + pts;
+                }
+
+                student.score += pts;
+                if (student.score < 0) student.score = 0;
+
+                updateStudentCodex(student);
+
+                const oldStage = getPetStageIndex(oldExp);
+                const newStage = getPetStageIndex(student.exp);
+
+                saveData(); 
+                renderStudents(); 
+                updateClassTarget();
+                closeStudentModal();
+
+                if (student.petTypeId && newStage > oldStage) {
+                    triggerEvolutionAnimation(student, oldStage, newStage);
+                }
+            }
+        }
+
+        function useFoodItem(itemKey, fullnessGain) {
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const student = classroomDatabase[currentActiveKey].find(s => s.id == activeStudentId);
+            if (student && student.inventory && student.inventory[itemKey] > 0) {
+                student.inventory[itemKey]--;
+                student.fullness = Math.min(100, (student.fullness || 0) + fullnessGain);
+                saveData();
+                renderStudents();
+                closeStudentModal();
+                alert(`🍲 成功投喂！【${student.name}】的宠物饱腹值升至 ${student.fullness}/100！`);
+            }
+        }
+
+        function useHealPotion(hpGain) {
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const student = classroomDatabase[currentActiveKey].find(s => s.id == activeStudentId);
+            if (student && student.inventory && student.inventory.potion > 0) {
+                student.inventory.potion--;
+                student.hp = Math.min(100, (student.hp || 0) + hpGain);
+                saveData();
+                renderStudents();
+                closeStudentModal();
+                alert(`💖 使用治愈药水！【${student.name}】的宠物恢复了 ${hpGain} 点生命值，当前 HP: ${student.hp}/100！`);
+            }
+        }
+
+        function usePrivilegeCard(itemKey, itemName) {
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const student = classroomDatabase[currentActiveKey].find(s => s.id == activeStudentId);
+            if (student && student.inventory && student.inventory[itemKey] > 0) {
+                if (confirm(`确定要使用 1 张【${itemName}】吗？`)) {
+                    student.inventory[itemKey]--;
+                    saveData();
+                    renderStudents();
+                    closeStudentModal();
+                    alert(`🎉 成功使用【${itemName}】！线下请找老师兑换对应特权！`);
+                }
+            }
+        }
+
+        function revivePetPop() {
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const student = classroomDatabase[currentActiveKey].find(s => s.id == activeStudentId);
+            if (student) {
+                student.hp = 100;
+                student.fullness = 50;
+                saveData();
+                renderStudents();
+                closeStudentModal();
+                alert(`💖 老师施展复活魔法！【${student.name}】的宠物已复活，血量满格恢复！`);
+            }
+        }
+
+        function deleteCurrentStudent() {
+            if(confirm("确定要移除这位同学的记录吗？")) {
+                loadData();
+                const currentActiveKey = classroomDatabase.currentClass;
+                classroomDatabase[currentActiveKey] = classroomDatabase[currentActiveKey].filter(s => s.id != activeStudentId);
+                saveData(); renderStudents(); updateClassTarget();
+                closeStudentModal();
+            }
+        }
+
+        function openPetSelectModalDirectly(studentId) {
+            activeStudentId = studentId;
+            openPetSelectModal();
+        }
+
+        function openPetSelectModal() {
+            closeStudentModal();
+            initPetSelectionOptions();
+            document.getElementById('petSelectModal').style.display = 'flex';
+        }
+
+        function closePetSelectModal() {
+            document.getElementById('petSelectModal').style.display = 'none';
+        }
+
+        function initPetSelectionOptions() {
+            const grid = document.getElementById('petSelectGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const currentStudents = classroomDatabase[currentActiveKey] || [];
+            const student = currentStudents.find(s => s.id == activeStudentId);
+
+            PET_IMAGE_DATABASE.forEach(pet => {
+                const card = document.createElement('div');
+                const isMastered = student && student.codex && student.codex[pet.id] && student.codex[pet.id].includes(3);
+
+                if (isMastered) {
+                    card.style.cssText = "background:#E5E7EB; border:2.5px solid #9CA3AF; border-radius:12px; padding:8px; text-align:center; opacity:0.65; filter:grayscale(100%); cursor:not-allowed; pointer-events:none; position:relative;";
+                    card.innerHTML = `
+                        <div style="font-size:28px;">${pet.defaultIcon}</div>
+                        <div style="font-weight:bold; font-size:12px; margin-top:2px; color:#4B5563;">${pet.name}</div>
+                        <div style="margin-top:4px; font-size:10px; font-weight:900; color:#DC2626; background:#FEE2E2; border-radius:6px; padding:1px 3px;">已满级</div>
+                    `;
+                } else {
+                    card.style.cssText = "background:white; border:2.5px solid var(--border-color); border-radius:12px; padding:8px; cursor:pointer; text-align:center; transition:transform 0.1s;";
+                    card.onclick = (e) => {
+                        e.stopPropagation();
+                        selectPetForActiveStudent(pet.id);
+                    };
+                    card.innerHTML = `
+                        <div style="font-size:28px;">${pet.defaultIcon}</div>
+                        <div style="font-weight:bold; font-size:12px; margin-top:2px;">${pet.name}</div>
+                    `;
+                }
+                grid.appendChild(card);
+            });
+        }
+
+        function selectPetForActiveStudent(petTypeId) {
+            if (!activeStudentId) {
+                alert('未选中学生，请重新点击学生！');
+                closePetSelectModal();
+                return;
+            }
+
+            loadData();
+            const currentActiveKey = classroomDatabase.currentClass;
+            const student = classroomDatabase[currentActiveKey].find(s => s.id == activeStudentId);
+
+            if (student) {
+                student.petTypeId = petTypeId;
+                student.hp = 100;
+                student.fullness = 100;
+
+                updateStudentCodex(student);
+
+                saveData(); 
+                renderStudents();
+                
+                const chosenPet = PET_IMAGE_DATABASE.find(p => p.id === petTypeId);
+                alert(`🎉 成功为【${student.name}】领养了宠物：${chosenPet ? chosenPet.name : '新宠物'}！`);
+            } else {
+                alert('找不到该学生数据，请重新点击学生卡片！');
+            }
+            closePetSelectModal();
+        }
+
+        function triggerEvolutionAnimation(student, oldStage, newStage) {
+            const overlay = document.getElementById('evolutionOverlay');
+            const evoCard = document.getElementById('evoCard');
+            const evoImg = document.getElementById('evoImage');
+            const evoTitle = document.getElementById('evoTitle');
+            const evoFooter = document.getElementById('evoFooter');
+
+            const petConfig = PET_IMAGE_DATABASE.find(p => p.id === student.petTypeId);
+            if (!petConfig) return;
+
+            evoTitle.innerText = `✨ 【${student.name}】 进化中`;
+            evoFooter.innerText = `⚡ ${getPetStageText(oldStage)} 蜕变中...`;
+            evoImg.src = petConfig.stages[oldStage];
+
+            evoCard.classList.remove('card-spinning');
+            void evoCard.offsetWidth;
+            
+            overlay.style.display = 'flex';
+            evoCard.classList.add('card-spinning');
+
+            setTimeout(() => {
+                evoImg.src = petConfig.stages[newStage];
+                evoTitle.innerText = `🎉 进化成功！`;
+                evoFooter.innerText = `✨ 恭喜获得：${getPetStageText(newStage)}！`;
+            }, 900);
+        }
+
+        function closeEvolutionModal() {
+            document.getElementById('evolutionOverlay').style.display = 'none';
+        }
+
+        function handleImageError(imgElement, originalPath, fallbackIcon) {
+            if (!imgElement.dataset.triedDoubleExt && originalPath.endsWith('.png')) {
+                imgElement.dataset.triedDoubleExt = "true";
+                imgElement.src = originalPath + ".png"; 
+            } else {
+                imgElement.style.display = 'none'; 
+                if (imgElement.nextElementSibling) {
+                    imgElement.nextElementSibling.style.display = 'block';
+                }
+            }
+        }
+
+        function renderStudents() {
+            const grid = document.getElementById('studentGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            const currentActiveKey = classroomDatabase.currentClass;
+            const currentStudents = classroomDatabase[currentActiveKey] || [];
+
+            currentStudents.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-grid-card';
+                card.onclick = () => openStudentModal(student.id);
+
+                const hpVal = (typeof student.hp === 'number' && !isNaN(student.hp)) ? student.hp : 100;
+                const fullnessVal = (typeof student.fullness === 'number' && !isNaN(student.fullness)) ? student.fullness : 100;
+                const expVal = (typeof student.exp === 'number' && !isNaN(student.exp)) ? student.exp : 0;
+
+                if (student.petTypeId) {
+                    const stageIdx = getPetStageIndex(expVal);
+                    const petConfig = PET_IMAGE_DATABASE.find(p => p.id === student.petTypeId) || PET_IMAGE_DATABASE[0];
+                    const imgPath = petConfig.stages[stageIdx];
+
+                    const isDying = (hpVal <= 0);
+                    const imgClass = isDying ? 'pet-img dying-pet' : 'pet-img floating-pet';
+                    const dyingBadgeHtml = isDying ? `<div class="dying-badge">☠️ 濒死</div>` : '';
+
+                    card.innerHTML = `
+                        ${dyingBadgeHtml}
+                        <div class="pet-avatar-wrapper">
+                            <img src="${imgPath}" class="${imgClass}" 
+                                 onerror="handleImageError(this, '${imgPath}', '${petConfig.defaultIcon}')" />
+                            <div style="display:none;" class="fallback-icon floating-pet">${petConfig.defaultIcon}</div>
+                        </div>
+
+                        <div class="card-bottom-info">
+                            <div class="name-score-row">
+                                <span class="student-card-name">${student.name}</span>
+                                <span class="student-card-score">
+                                    💰${student.score}
+                                    <span style="font-size:11px; color:#7F8C8D; font-weight:normal;">(EXP:${expVal})</span>
+                                </span>
+                            </div>
+                            <div class="stat-bars-container">
+                                <div class="stat-line-item">
+                                    <div class="stat-label-flex">
+                                        <span>❤️ HP</span>
+                                        <span>${hpVal}/100</span>
+                                    </div>
+                                    <div class="mini-bar-bg">
+                                        <div class="mini-bar-fill" style="width:${hpVal}%; background:var(--accent-red);"></div>
+                                    </div>
+                                </div>
+                                <div class="stat-line-item">
+                                    <div class="stat-label-flex">
+                                        <span>🍖 饱腹</span>
+                                        <span>${fullnessVal}/100</span>
+                                    </div>
+                                    <div class="mini-bar-bg">
+                                        <div class="mini-bar-fill" style="width:${fullnessVal}%; background:var(--accent-orange);"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div class="pet-avatar-wrapper">
+                            <div class="no-pet-box" onclick="event.stopPropagation(); openPetSelectModalDirectly(${student.id});">
+                                <div style="font-size: 40px;" class="bounce">🐾</div>
+                                <div style="font-size: 16px;">点击领养宠物</div>
+                            </div>
+                        </div>
+
+                        <div class="card-bottom-info" style="justify-content: center;">
+                            <div class="name-score-row">
+                                <span class="student-card-name" style="font-size:18px;">${student.name}</span>
+                                <span class="student-card-score">💰${student.score} 分</span>
+                            </div>
+                            <div style="text-align:center; font-size:12px; color:#7F8C8D; margin-top:6px; font-weight:bold;">
+                                (尚未领养宠物)
+                            </div>
+                        </div>
+                    `;
+                }
+                grid.appendChild(card);
+            });
+        }
+
+        function updateClassTarget() {
+            const currentActiveKey = classroomDatabase.currentClass;
+            const currentStudents = classroomDatabase[currentActiveKey] || [];
+            
+            totalScore = currentStudents.reduce((sum, student) => sum + student.score, 0);
+            document.getElementById('totalScore').innerText = totalScore;
+            
+            let currentGoal = goals[0]; let previousGoal = 0;
+            for (let i = 0; i < goals.length; i++) {
+                if (totalScore < goals[i]) {
+                    currentGoal = goals[i]; previousGoal = i > 0 ? goals[i-1] : 0; break;
+                } else if (i === goals.length - 1) {
+                    currentGoal = goals[goals.length - 1]; previousGoal = goals[goals.length - 2];
+                }
+            }
+            let displayRatioText = `${totalScore} / ${currentGoal}`;
+            let diffText = ""; let progressPercent = 0;
+            if (totalScore >= goals[goals.length - 1]) {
+                diffText = "🎉 极佳！已达成全班最高积分目标！"; progressPercent = 100;
+            } else {
+                const diff = currentGoal - totalScore; diffText = `距离下个目标差: ${diff} 分`;
+                const sectionTotal = currentGoal - previousGoal; const sectionEarned = totalScore - previousGoal;
+                progressPercent = (sectionEarned / sectionTotal) * 100;
+            }
+            document.getElementById('scoreRatio').innerText = displayRatioText;
+            document.getElementById('goalStatus').innerText = diffText;
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+        }
+    </script>
+</body>
+</html>

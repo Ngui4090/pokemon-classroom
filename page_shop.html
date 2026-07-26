@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>萌宠商城</title>
+    <style>
+        :root {
+            --bg-color: #FAF6EE;
+            --border-color: #5A3E2D;
+            --text-main: #3C281E;
+            --accent-yellow: #F5B041;
+            --accent-orange: #EB984E;
+            --accent-green: #52BE80;
+            --accent-purple: #AF7AC5;
+            --accent-blue: #4A90E2;
+            --accent-red: #EC7063;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            user-select: none;
+        }
+
+        .shop-header {
+            width: 100%; max-width: 900px; background: white;
+            border: 3.5px solid var(--border-color); border-radius: 20px;
+            padding: 15px 20px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 6px 0 var(--border-color);
+            margin-bottom: 20px; box-sizing: border-box; flex-wrap: wrap; gap: 10px;
+        }
+
+        .student-select {
+            padding: 8px 14px; font-size: 15px; font-weight: bold;
+            border: 2.5px solid var(--border-color); border-radius: 12px;
+            background: var(--accent-yellow); outline: none; cursor: pointer;
+        }
+
+        .shop-grid {
+            width: 100%; max-width: 900px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+        }
+
+        .shop-card {
+            background: white; border: 3.5px solid var(--border-color);
+            border-radius: 22px; padding: 16px; box-shadow: 0 6px 0 var(--border-color);
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            justify-content: space-between; height: 260px; box-sizing: border-box;
+        }
+
+        .item-icon { font-size: 45px; margin-bottom: 4px; }
+        .item-title { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
+        .item-desc { font-size: 12px; color: #7F8C8D; margin-bottom: 8px; font-weight: bold; line-height: 1.3; }
+        .item-price {
+            font-size: 14px; font-weight: 900; color: var(--accent-orange);
+            background: #FFFDF9; border: 2px solid var(--border-color);
+            padding: 2px 8px; border-radius: 8px; margin-bottom: 8px;
+        }
+
+        .btn-buy {
+            width: 100%; padding: 8px; background: var(--accent-green);
+            color: white; border-radius: 12px; font-size: 14px; font-weight: bold;
+            box-shadow: 0 3px 0 var(--border-color); cursor: pointer; border: 2.5px solid var(--border-color);
+        }
+        .btn-buy:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--border-color); }
+
+        /* 全屏盲盒开奖暗屏遮罩 */
+        .mystery-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(6px);
+            z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .mystery-box-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gift-box-icon {
+            font-size: 130px;
+            animation: boxWiggle 0.7s infinite ease-in-out;
+            filter: drop-shadow(0 0 30px #F5B041);
+        }
+
+        @keyframes boxWiggle {
+            0% { transform: scale(1) rotate(0deg); }
+            20% { transform: scale(1.1) rotate(-10deg); }
+            40% { transform: scale(1.1) rotate(10deg); }
+            60% { transform: scale(1.1) rotate(-10deg); }
+            80% { transform: scale(1.1) rotate(10deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .click-hint-text {
+            margin-top: 20px;
+            font-size: 22px;
+            font-weight: 900;
+            color: #F5B041;
+            text-shadow: 0 0 12px rgba(245, 176, 65, 0.8);
+            animation: bounce 1.2s infinite;
+        }
+
+        .mystery-voucher-card {
+            display: none;
+            width: 310px;
+            background: #FFFDF9;
+            border: 5px solid var(--border-color);
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: 0 12px 0 var(--border-color), 0 0 60px #F5B041;
+            text-align: center;
+            position: relative;
+            box-sizing: border-box;
+            animation: voucherPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes voucherPop {
+            0% { transform: scale(0.2) rotate(-12deg); opacity: 0; }
+            60% { transform: scale(1.1) rotate(3deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .voucher-tag {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            font-size: 13px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            box-shadow: 0 3px 0 var(--border-color);
+        }
+
+        .voucher-icon {
+            font-size: 70px;
+            margin: 10px 0;
+            filter: drop-shadow(0 4px 0 rgba(0,0,0,0.1));
+        }
+
+        .voucher-title {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .voucher-desc {
+            font-size: 14px;
+            font-weight: bold;
+            color: #7F8C8D;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        }
+
+        .voucher-close-tip {
+            font-size: 12px;
+            font-weight: bold;
+            color: #B7950B;
+            background: #FEF9E7;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1.5px dashed var(--border-color);
+        }
+
+        .bounce { animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    </style>
+</head>
+<body>
+
+    <div class="shop-header">
+        <div style="font-size: 20px; font-weight: bold;">🛒 萌宠课堂补给商城</div>
+        <div>
+            <span>购买人: </span>
+            <select class="student-select" id="shopStudentSelect" onchange="updateStudentScoreDisplay()"></select>
+            <span style="font-weight: 900; margin-left: 10px; color: var(--accent-orange);" id="currentScore">积分: 0</span>
+        </div>
+    </div>
+
+    <div class="shop-grid">
+        <!-- 1. 小面包 -->
+        <div class="shop-card">
+            <div>
+                <div class="item-icon">🍞</div>
+                <div class="item-title">香甜小面包</div>
+                <div class="item-desc">存入背包，投喂可恢复 20 饱腹值</div>
+            </div>
+            <div>
+                <div class="item-price">💰 10 积分</div>
+                <button class="btn-buy" onclick="buyRegularItem('bread', 10, '香甜小面包')">购买存存粮</button>
+            </div>
+        </div>
+
+        <!-- 2. 美味披萨 -->
+        <div class="shop-card">
+            <div>
+                <div class="item-icon">🍕</div>
+                <div class="item-title">美味大披萨</div>
+                <div class="item-desc">存入背包，投喂可恢复 50 饱腹值</div>
+            </div>
+            <div>
+                <div class="item-price">💰 25 积分</div>
+                <button class="btn-buy" onclick="buyRegularItem('pizza', 25, '美味大披萨')">购买存存粮</button>
+            </div>
+        </div>
+
+        <!-- 3. 治愈药水 -->
+        <div class="shop-card">
+            <div>
+                <div class="item-icon">💖</div>
+                <div class="item-title">治愈药水</div>
+                <div class="item-desc">存入背包，使用可恢复 20 生命值(HP)</div>
+            </div>
+            <div>
+                <div class="item-price">💰 30 积分</div>
+                <button class="btn-buy" onclick="buyRegularItem('potion', 30, '治愈药水')">购买存药水</button>
+            </div>
+        </div>
+
+        <!-- 4. 神秘萌宠盲盒 -->
+        <div class="shop-card" style="background: #FEF9E7;">
+            <div>
+                <div class="item-icon">📦</div>
+                <div class="item-title" style="color:#B7950B;">神秘萌宠盲盒</div>
+                <div class="item-desc">开出好吃的/治愈药水，保底小饼干！</div>
+            </div>
+            <div>
+                <div class="item-price">💰 20 积分</div>
+                <button class="btn-buy" style="background:var(--accent-yellow); color:var(--text-main);" onclick="buyMysteryBox()">🎁 拆盲盒</button>
+            </div>
+        </div>
+
+        <!-- 5. 指定游戏卡 -->
+        <div class="shop-card">
+            <div>
+                <div class="item-icon">🎮</div>
+                <div class="item-title">指定游戏卡</div>
+                <div class="item-desc">下课前 10 分钟向老师指定全班游戏</div>
+            </div>
+            <div>
+                <div class="item-price">💰 100 积分</div>
+                <button class="btn-buy" style="background:var(--accent-purple);" onclick="buyRegularItem('gameCard', 100, '指定游戏卡')">兑换特权卡</button>
+            </div>
+        </div>
+
+        <!-- 6. 零食贴纸券 -->
+        <div class="shop-card">
+            <div>
+                <div class="item-icon">🍬</div>
+                <div class="item-title">零食贴纸券</div>
+                <div class="item-desc">向老师兑换 1 颗真实糖果或小贴纸</div>
+            </div>
+            <div>
+                <div class="item-price">💰 120 积分</div>
+                <button class="btn-buy" style="background:var(--accent-blue);" onclick="buyRegularItem('snackVoucher', 120, '零食贴纸券')">兑换零食券</button>
+            </div>
+        </div>
+
+        <!-- 7. 双倍积分卡 -->
+        <div class="shop-card">
+            <div>
+                <div class="item-icon">🌟</div>
+                <div class="item-title">双倍积分卡</div>
+                <div class="item-desc">存入背包，使用后下一堂课得分翻倍</div>
+            </div>
+            <div>
+                <div class="item-price">💰 50 积分</div>
+                <button class="btn-buy" style="background:var(--accent-orange);" onclick="buyRegularItem('doubleBuff', 50, '双倍积分卡')">购买 Buff 卡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全屏盲盒开奖动画遮罩层 -->
+    <div class="mystery-modal-overlay" id="mysteryModal" onclick="handleMysteryClick()">
+        <div id="mysteryBoxStage" class="mystery-box-container">
+            <div class="gift-box-icon">🎁</div>
+            <div class="click-hint-text">✨ 点击礼盒解封惊喜！ ✨</div>
+        </div>
+
+        <div id="mysteryVoucherStage" class="mystery-voucher-card">
+            <div class="voucher-tag" id="voucherTag">🎉 欧皇大奖</div>
+            <div class="voucher-icon" id="voucherIcon">🍪</div>
+            <div class="voucher-title" id="voucherTitle">酥脆小饼干</div>
+            <div class="voucher-desc" id="voucherDesc">+5 饱腹值（已自动存入个人背包）</div>
+            <div class="voucher-close-tip">( 点击任意处收下礼物 )</div>
+        </div>
+    </div>
+
+    <script>
+        let db = null;
+        let mysteryStep = 0;
+        let currentPrize = null;
+
+        function loadData() {
+            const saved = localStorage.getItem('classroom_multi_accounts_v1');
+            if (saved) {
+                try { db = JSON.parse(saved); } catch(e) {}
+            }
+            renderStudentOptions();
+        }
+
+        // 💡 核心修复：渲染下拉菜单时，保留当前选中的学生！
+        function renderStudentOptions() {
+            const select = document.getElementById('shopStudentSelect');
+            if (!select) return;
+
+            // 记住当前选中的学生 ID
+            const previousSelectedId = select.value;
+
+            select.innerHTML = '';
+            
+            if (!db || !db.currentClass || !db[db.currentClass] || db[db.currentClass].length === 0) {
+                const opt = document.createElement('option');
+                opt.innerText = '暂无学生';
+                select.appendChild(opt);
+                document.getElementById('currentScore').innerText = '积分: 0';
+                return;
+            }
+
+            const currentStudents = db[db.currentClass];
+            currentStudents.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = s.name;
+                select.appendChild(opt);
+            });
+
+            // 💡 恢复之前选中的学生状态
+            if (previousSelectedId && currentStudents.some(s => s.id == previousSelectedId)) {
+                select.value = previousSelectedId;
+            }
+
+            updateStudentScoreDisplay();
+        }
+
+        function updateStudentScoreDisplay() {
+            const select = document.getElementById('shopStudentSelect');
+            const studentId = select.value;
+            if (!studentId || !db || !db[db.currentClass]) return;
+
+            const student = db[db.currentClass].find(s => s.id == studentId);
+            if (student) {
+                document.getElementById('currentScore').innerText = `积分: ${student.score} 分`;
+            }
+        }
+
+        function getDefaultInventory() {
+            return { bread: 0, pizza: 0, potion: 0, biscuit: 0, snackVoucher: 0, gameCard: 0, doubleBuff: 0 };
+        }
+
+        // 普通道具购买逻辑
+        function buyRegularItem(itemKey, cost, itemName) {
+            const select = document.getElementById('shopStudentSelect');
+            const targetStudentId = select.value; // 锁定当前下拉选中的学生
+
+            loadData(); // 刷新最新本地数据
+
+            if (!targetStudentId || !db || !db[db.currentClass]) {
+                return alert('请先选择要购买补给的学生！');
+            }
+
+            const student = db[db.currentClass].find(s => s.id == targetStudentId);
+            if (!student) return;
+
+            if (student.score < cost) {
+                return alert(`积分不足！购买【${itemName}】需要 ${cost} 积分，而【${student.name}】只有 ${student.score} 积分！`);
+            }
+
+            student.score -= cost;
+            student.inventory = Object.assign(getDefaultInventory(), student.inventory || {});
+            student.inventory[itemKey] = (student.inventory[itemKey] || 0) + 1;
+
+            localStorage.setItem('classroom_multi_accounts_v1', JSON.stringify(db));
+            
+            // 重新渲染，此时会完美保留 select.value 为 targetStudentId
+            renderStudentOptions();
+
+            alert(`🎉 购买成功！【${student.name}】获得了 1 个【${itemName}】！已存入个人背包！`);
+        }
+
+        // 盲盒购买逻辑
+        function buyMysteryBox() {
+            const select = document.getElementById('shopStudentSelect');
+            const targetStudentId = select.value; // 锁定当前下拉选中的学生
+
+            loadData(); // 刷新最新本地数据
+
+            if (!targetStudentId || !db || !db[db.currentClass]) {
+                return alert('请先选择要抽盲盒的学生！');
+            }
+
+            const student = db[db.currentClass].find(s => s.id == targetStudentId);
+            if (!student) return;
+
+            const cost = 20;
+            if (student.score < cost) {
+                return alert(`积分不足！拆盲盒需要 ${cost} 积分，而【${student.name}】只有 ${student.score} 积分！`);
+            }
+
+            student.score -= cost;
+            student.inventory = Object.assign(getDefaultInventory(), student.inventory || {});
+
+            const rand = Math.random() * 100;
+            if (rand < 80) {
+                student.inventory.biscuit = (student.inventory.biscuit || 0) + 1;
+                currentPrize = {
+                    tag: '🍪 保底小奖',
+                    tagBg: '#F5B041',
+                    tagColor: '#FFFFFF',
+                    icon: '🍪',
+                    title: '酥脆小饼干',
+                    desc: '味道真棒！可为宠物恢复 +5 饱腹值（已存入背包）'
+                };
+            } else if (rand < 99) {
+                const foodPool = [
+                    { key: 'bread', icon: '🍞', name: '香甜小面包', desc: '+20 饱腹值（已存入背包）' },
+                    { key: 'pizza', icon: '🍕', name: '美味大披萨', desc: '+50 饱腹值（已存入背包）' },
+                    { key: 'potion', icon: '💖', name: '治愈药水', desc: '+20 生命值(HP)（已存入背包）' }
+                ];
+                const picked = foodPool[Math.floor(Math.random() * foodPool.length)];
+                student.inventory[picked.key] = (student.inventory[picked.key] || 0) + 1;
+                currentPrize = {
+                    tag: '🎉 运势爆发',
+                    tagBg: '#52BE80',
+                    tagColor: '#FFFFFF',
+                    icon: picked.icon,
+                    title: picked.name,
+                    desc: picked.desc
+                };
+            } else {
+                const grandPool = [
+                    { key: 'snackVoucher', icon: '🍬', name: '零食贴纸券', desc: '价值 120 积分！可向老师兑换真实糖果/贴纸！' },
+                    { key: 'gameCard', icon: '🎮', name: '指定游戏卡', desc: '价值 100 积分！可指定下课全班游戏！' },
+                    { key: 'doubleBuff', icon: '🌟', name: '双倍积分卡', desc: '价值 50 积分！下一堂课得分翻倍！' }
+                ];
+                const picked = grandPool[Math.floor(Math.random() * grandPool.length)];
+                student.inventory[picked.key] = (student.inventory[picked.key] || 0) + 1;
+                currentPrize = {
+                    tag: '🏆 1% 欧皇超级大奖！',
+                    tagBg: '#EC7063',
+                    tagColor: '#FFFFFF',
+                    icon: picked.icon,
+                    title: picked.name,
+                    desc: picked.desc
+                };
+            }
+
+            localStorage.setItem('classroom_multi_accounts_v1', JSON.stringify(db));
+            
+            // 重新渲染并保留选中学生
+            renderStudentOptions();
+
+            // 开启暗屏与摇晃礼盒
+            mysteryStep = 1;
+            document.getElementById('mysteryBoxStage').style.display = 'flex';
+            document.getElementById('mysteryVoucherStage').style.display = 'none';
+            document.getElementById('mysteryModal').style.display = 'flex';
+        }
+
+        function handleMysteryClick() {
+            if (mysteryStep === 1) {
+                mysteryStep = 2;
+                document.getElementById('mysteryBoxStage').style.display = 'none';
+
+                const tagEl = document.getElementById('voucherTag');
+                tagEl.innerText = currentPrize.tag;
+                tagEl.style.background = currentPrize.tagBg;
+                tagEl.style.color = currentPrize.tagColor;
+
+                document.getElementById('voucherIcon').innerText = currentPrize.icon;
+                document.getElementById('voucherTitle').innerText = currentPrize.title;
+                document.getElementById('voucherDesc').innerText = currentPrize.desc;
+
+                document.getElementById('mysteryVoucherStage').style.display = 'block';
+            } else if (mysteryStep === 2) {
+                mysteryStep = 0;
+                document.getElementById('mysteryModal').style.display = 'none';
+            }
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>

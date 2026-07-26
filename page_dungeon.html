@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>副本关卡 - 怪物大作战</title>
+    <!-- 引入 Excel 极速解析库 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #FAF6EE;
+            --border-color: #5A3E2D;
+            --card-bg: #FFFDF9;
+            --text-main: #3C281E;
+            --accent-yellow: #F5B041;
+            --accent-orange: #EB984E;
+            --accent-green: #52BE80;
+            --accent-red: #EC7063;
+            --accent-blue: #4A90E2;
+            --accent-purple: #AF7AC5;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0; padding: 20px;
+            box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .container {
+            display: flex; flex-direction: column; gap: 20px;
+            width: 100%; max-width: 950px; margin: 0 auto;
+        }
+
+        /* 顶部控制面板 */
+        .top-bar {
+            background: var(--card-bg); border: 3.5px solid var(--border-color);
+            border-radius: 20px; padding: 15px 20px; box-shadow: 0 6px 0 var(--border-color);
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+        }
+
+        .control-group { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 14px; }
+
+        select, button, label {
+            font-family: inherit; font-weight: bold; cursor: pointer;
+        }
+
+        select {
+            padding: 8px 12px; font-size: 14px; border: 2.5px solid var(--border-color);
+            border-radius: 12px; background: var(--accent-yellow); outline: none;
+        }
+
+        .btn-action {
+            padding: 8px 14px; font-size: 13px; border-radius: 12px;
+            border: 2.5px solid var(--border-color); box-shadow: 0 3px 0 var(--border-color);
+            color: white; transition: transform 0.1s;
+        }
+        .btn-action:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--border-color); }
+        .btn-template { background: var(--accent-blue); }
+        .btn-import { background: var(--accent-green); }
+
+        /* 战斗舞台 */
+        .battle-stage {
+            background: linear-gradient(180deg, #EBF5FB 0%, #D5F5E3 100%);
+            border: 4px solid var(--border-color); border-radius: 28px;
+            padding: 20px 40px; box-shadow: 0 8px 0 var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+            position: relative; height: 210px; box-sizing: border-box;
+        }
+
+        .fighter-card {
+            display: flex; flex-direction: column; align-items: center; gap: 6px; width: 200px;
+        }
+
+        .avatar-box {
+            width: 110px; height: 110px; background: white;
+            border: 3.5px solid var(--border-color); border-radius: 22px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 5px 0 var(--border-color); position: relative; overflow: hidden;
+        }
+
+        .pet-avatar-img {
+            max-width: 95px; max-height: 95px; object-fit: contain; mix-blend-mode: multiply;
+        }
+
+        .hp-bar-bg {
+            width: 100%; height: 18px; background: #EAECEE;
+            border: 2.5px solid var(--border-color); border-radius: 10px; overflow: hidden; position: relative;
+        }
+        .hp-bar-fill { height: 100%; background: var(--accent-red); transition: width 0.3s; width: 100%; }
+
+        /* 题库答题区 */
+        .quiz-card {
+            background: var(--card-bg); border: 4px solid var(--border-color);
+            border-radius: 28px; padding: 25px; box-shadow: 0 8px 0 var(--border-color);
+            text-align: center; display: flex; flex-direction: column; gap: 15px; box-sizing: border-box;
+        }
+
+        .quiz-info-row {
+            display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 14px; color: #7F8C8D;
+        }
+
+        .question-text { font-size: 20px; font-weight: 900; color: var(--text-main); line-height: 1.4; }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        .btn-option {
+            padding: 14px; font-size: 16px; font-weight: bold; background: #FFFDF9;
+            border: 3px solid var(--border-color); border-radius: 16px;
+            box-shadow: 0 4px 0 var(--border-color); cursor: pointer; transition: transform 0.1s;
+        }
+        .btn-option:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--border-color); }
+
+        .attack-effect { animation: attackAnim 0.4s ease-in-out; }
+        @keyframes attackAnim {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(80px) scale(1.1); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 顶部选择与导入控制栏 -->
+        <div class="top-bar">
+            <div class="control-group">
+                <span>🎒 参战学生:</span>
+                <select id="studentSelect" onchange="switchStudent()"></select>
+            </div>
+
+            <div class="control-group">
+                <span>⚔️ 模式:</span>
+                <select id="modeSelect">
+                    <option value="single">单人通关</option>
+                    <option value="class">全班通关 (全员加奖)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <span>📚 题库:</span>
+                <select id="bankSelect" onchange="switchBank()"></select>
+            </div>
+
+            <div class="control-group" style="gap: 6px;">
+                <button class="btn-action btn-template" onclick="downloadTemplate()">📥 下载模板</button>
+                <label class="btn-action btn-import" style="display:inline-block; margin:0;">
+                    📤 导入题库
+                    <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="importExcelQuiz(this)">
+                </label>
+            </div>
+        </div>
+
+        <!-- 战斗大舞台 -->
+        .battle-stage {
+        <div class="battle-stage">
+            <!-- 左侧学生宠物 -->
+            <div class="fighter-card">
+                <div class="avatar-box" id="petAvatarBox">
+                    <span id="petFallbackIcon" style="font-size: 50px;">🥚</span>
+                    <img id="petAvatarImg" class="pet-avatar-img" src="" alt="Pet" style="display:none;" />
+                </div>
+                <div style="font-weight: 900; font-size: 16px;" id="studentPetName">学生名字</div>
+                <div style="font-size: 12px; color: var(--accent-purple); font-weight: bold;" id="stageText">蛋壳形态</div>
+            </div>
+
+            <div style="font-size: 36px; font-weight: 900; color: var(--accent-red); font-style: italic;">VS</div>
+
+            <!-- 右侧怪兽 -->
+            <div class="fighter-card">
+                <div class="avatar-box" style="font-size: 50px;">👹</div>
+                <div style="font-weight: 900; font-size: 16px;">副本大魔王</div>
+                <div class="hp-bar-bg"><div class="hp-bar-fill" id="monsterHpBar" style="width:100%;"></div></div>
+                <div style="font-size: 12px; font-weight: bold;" id="monsterHpText">HP: 100/100</div>
+            </div>
+        </div>
+
+        <!-- 题库答题区 -->
+        <div class="quiz-card">
+            <div class="quiz-info-row">
+                <span id="bankNameDisplay">当前题库: 默认演示题库</span>
+                <span id="roundProgress">进阶挑战: 第 1 / 10 题</span>
+            </div>
+            <div class="question-text" id="questionBox">请在上方选择或导入题库，开始挑战 10 连击！</div>
+            <div class="options-grid" id="optionsGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        const PET_IMAGE_DATABASE = [
+            { id: 'pet1', defaultIcon: '🐾', stages: { 0: 'assets/pets/pet1/egg.png', 1: 'assets/pets/pet1/stage1.png', 2: 'assets/pets/pet1/stage2.png', 3: 'assets/pets/pet1/stage3.png' } },
+            { id: 'pet2', defaultIcon: '🐾', stages: { 0: 'assets/pets/pet2/egg.png', 1: 'assets/pets/pet2/stage1.png', 2: 'assets/pets/pet2/stage2.png', 3: 'assets/pets/pet2/stage3.png' } },
+            { id: 'dragon', defaultIcon: '🐉', stages: { 0: 'assets/pets/dragon/egg.png', 1: 'assets/pets/dragon/stage1.png', 2: 'assets/pets/dragon/stage2.png', 3: 'assets/pets/dragon/stage3.png' } },
+            { id: 'cat', defaultIcon: '🐱', stages: { 0: 'assets/pets/cat/egg.png', 1: 'assets/pets/cat/stage1.png', 2: 'assets/pets/cat/stage2.png', 3: 'assets/pets/cat/stage3.png' } },
+            { id: 'dog', defaultIcon: '🐶', stages: { 0: 'assets/pets/dog/egg.png', 1: 'assets/pets/dog/stage1.png', 2: 'assets/pets/dog/stage2.png', 3: 'assets/pets/dog/stage3.png' } }
+        ];
+
+        let db = null;
+        let currentStudents = [];
+        let activeStudent = null;
+        let monsterHp = 100;
+
+        // 多题库管理数据结构
+        let quizBanks = {
+            "默认基础题库": [
+                { q: "‘Apple’ 的中文翻译是什么？", options: ["苹果", "香蕉", "西瓜", "草莓"], answer: "苹果" },
+                { q: "‘Cat’ 的中文翻译是什么？", options: ["小狗", "猫咪", "兔子", "老虎"], answer: "猫咪" },
+                { q: "‘Book’ 的中文翻译是什么？", options: ["书本", "铅笔", "书包", "桌子"], answer: "书本" },
+                { q: "‘Water’ 的中文翻译是什么？", options: ["牛奶", "果汁", "水", "茶"], answer: "水" },
+                { q: "‘Sun’ 的中文翻译是什么？", options: ["月亮", "星星", "太阳", "云朵"], answer: "太阳" },
+                { q: "‘Dog’ 的中文翻译是什么？", options: ["小狗", "小猫", "小鸟", "青蛙"], answer: "小狗" },
+                { q: "‘School’ 的中文翻译是什么？", options: ["医院", "学校", "公园", "超市"], answer: "学校" },
+                { q: "‘Milk’ 的中文翻译是什么？", options: ["牛奶", "咖啡", "可乐", "雪碧"], answer: "牛奶" },
+                { q: "‘Red’ 的中文翻译是什么？", options: ["红色", "蓝色", "绿色", "黄色"], answer: "红色" },
+                { q: "‘Happy’ 的中文翻译是什么？", options: ["伤心", "生气", "快乐", "疲倦"], answer: "快乐" }
+            ]
+        };
+        let activeBankName = "默认基础题库";
+        let currentRoundQuestions = [];
+        let currentQuizIndex = 0;
+
+        window.onload = function() {
+            loadLocalStorageData();
+            initQuizBanksDropdown();
+            startNewRound();
+        };
+
+        function loadLocalStorageData() {
+            const rawData = localStorage.getItem('classroom_multi_accounts_v1');
+            const select = document.getElementById('studentSelect');
+            select.innerHTML = '';
+
+            if (rawData) {
+                try {
+                    db = JSON.parse(rawData);
+                    const currentActiveKey = db.currentClass || 'class_A';
+                    currentStudents = db[currentActiveKey] || [];
+
+                    currentStudents.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.innerText = `${s.name} (💰${s.score})`;
+                        select.appendChild(opt);
+                    });
+
+                    if (currentStudents.length > 0) {
+                        activeStudent = currentStudents[0];
+                        renderFighterPet();
+                    } else {
+                        select.innerHTML = '<option>暂无学生</option>';
+                    }
+                } catch(e) {}
+            }
+        }
+
+        function switchStudent() {
+            const id = document.getElementById('studentSelect').value;
+            activeStudent = currentStudents.find(s => s.id == id);
+            renderFighterPet();
+        }
+
+        function getPetStageIndex(expValue) {
+            const exp = expValue || 0;
+            if (exp >= 500) return 3;
+            if (exp >= 300) return 2;
+            if (exp >= 100) return 1;
+            return 0;
+        }
+
+        function getPetStageText(stageIndex) {
+            const names = ['蛋壳形态', '第一阶段', '第二阶段', '第三阶段 (终极)'];
+            return names[stageIndex] || '蛋壳形态';
+        }
+
+        function renderFighterPet() {
+            if (!activeStudent) return;
+            document.getElementById('studentPetName').innerText = activeStudent.name;
+            const expVal = activeStudent.exp || 0;
+            const stageIdx = getPetStageIndex(expVal);
+            document.getElementById('stageText').innerText = getPetStageText(stageIdx);
+
+            const imgEl = document.getElementById('petAvatarImg');
+            const fallbackEl = document.getElementById('petFallbackIcon');
+
+            if (activeStudent.petTypeId) {
+                const petConfig = PET_IMAGE_DATABASE.find(p => p.id === activeStudent.petTypeId);
+                if (petConfig && petConfig.stages[stageIdx]) {
+                    imgEl.src = petConfig.stages[stageIdx];
+                    imgEl.style.display = 'block';
+                    fallbackEl.style.display = 'none';
+                } else {
+                    imgEl.style.display = 'none';
+                    fallbackEl.style.display = 'block';
+                    fallbackEl.innerText = petConfig ? petConfig.defaultIcon : '🐾';
+                }
+            } else {
+                imgEl.style.display = 'none';
+                fallbackEl.style.display = 'block';
+                fallbackEl.innerText = '🥚';
+            }
+        }
+
+        // 初始化多题库下拉列表
+        function initQuizBanksDropdown() {
+            const bankSelect = document.getElementById('bankSelect');
+            bankSelect.innerHTML = '';
+            Object.keys(quizBanks).forEach(bankName => {
+                const opt = document.createElement('option');
+                opt.value = bankName;
+                opt.innerText = bankName;
+                bankSelect.appendChild(opt);
+            });
+        }
+
+        function switchBank() {
+            activeBankName = document.getElementById('bankSelect').value;
+            startNewRound();
+        }
+
+        // 抽取每轮 10 题
+        function startNewRound() {
+            const fullBank = quizBanks[activeBankName] || [];
+            if (fullBank.length === 0) {
+                currentRoundQuestions = [];
+                document.getElementById('questionBox').innerText = "当前题库为空，请先导入或切换题库！";
+                document.getElementById('optionsGrid').innerHTML = '';
+                return;
+            }
+
+            // 随机打乱并截取前 10 题（如果题库不足 10 题则循环或全部使用）
+            let shuffled = [...fullBank].sort(() => 0.5 - Math.random());
+            currentRoundQuestions = shuffled.slice(0, 10);
+            currentQuizIndex = 0;
+            monsterHp = 100;
+
+            document.getElementById('monsterHpBar').style.width = '100%';
+            document.getElementById('monsterHpText').innerText = 'HP: 100/100';
+            document.getElementById('bankNameDisplay').innerText = `当前题库: ${activeBankName}`;
+
+            renderQuiz();
+        }
+
+        function renderQuiz() {
+            if (currentRoundQuestions.length === 0) return;
+            if (currentQuizIndex >= currentRoundQuestions.length) return;
+
+            const item = currentRoundQuestions[currentQuizIndex];
+            document.getElementById('roundProgress').innerText = `进阶挑战: 第 ${currentQuizIndex + 1} / ${currentRoundQuestions.length} 题`;
+            document.getElementById('questionBox').innerText = item.q;
+            
+            const grid = document.getElementById('optionsGrid');
+            grid.innerHTML = '';
+            item.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, item.answer);
+                grid.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, correct) {
+            if (!activeStudent) {
+                return alert('请先在上方选择参战学生！');
+            }
+
+            if (selected === correct) {
+                // 每答对一题扣 10 点怪兽血量 (共 10 题刚好 100 血)
+                monsterHp = Math.max(0, monsterHp - 10);
+                document.getElementById('monsterHpBar').style.width = `${monsterHp}%`;
+                document.getElementById('monsterHpText').innerText = `HP: ${monsterHp}/100`;
+
+                // 攻击动画效果
+                const avatarBox = document.getElementById('petAvatarBox');
+                avatarBox.classList.add('attack-effect');
+                setTimeout(() => avatarBox.classList.remove('attack-effect'), 400);
+
+                currentQuizIndex++;
+
+                if (monsterHp <= 0 || currentQuizIndex >= currentRoundQuestions.length) {
+                    // 通关成功！奖励发放
+                    awardRewardsAndSave();
+                } else {
+                    renderQuiz();
+                }
+            } else {
+                alert('❌ 回答错误！魔王发起反击，请继续加油！');
+            }
+        }
+
+        // 奖励发放结算 (+100 积分与 +100 EXP)
+        function awardRewardsAndSave() {
+            const rawData = localStorage.getItem('classroom_multi_accounts_v1');
+            if (!rawData) return;
+            const database = JSON.parse(rawData);
+            const currentActiveKey = database.currentClass || 'class_A';
+            const mode = document.getElementById('modeSelect').value;
+
+            if (mode === 'single') {
+                // 单人通关奖励
+                const student = database[currentActiveKey].find(s => s.id == activeStudent.id);
+                if (student) {
+                    student.score += 100;
+                    student.exp = (student.exp || 0) + 100;
+                }
+                alert(`🎉 恭喜 【${activeStudent.name}】 单人成功通关副本！\n奖励发放：💰 +100 积分 | ⭐ +100 EXP！`);
+            } else {
+                // 全班通关奖励 (全员加奖)
+                const classStudents = database[currentActiveKey] || [];
+                classStudents.forEach(s => {
+                    s.score += 100;
+                    s.exp = (s.exp || 0) + 100;
+                });
+                alert(`👑 团队荣耀！全班同学齐心协力通关副本！\n全班 ${classStudents.length} 名学生每人获得：💰 +100 积分 | ⭐ +100 EXP！`);
+            }
+
+            localStorage.setItem('classroom_multi_accounts_v1', JSON.stringify(database));
+            loadLocalStorageData();
+            startNewRound(); // 自动开启新一轮 10 题挑战
+        }
+
+        // 下载 Excel 模板功能
+        function downloadTemplate() {
+            const templateData = [
+                ["题目 (Question)", "选项A", "选项B", "选项C", "选项D", "正确答案 (Answer)"],
+                ["‘Apple’ 的中文翻译是什么？", "苹果", "香蕉", "西瓜", "草莓", "苹果"],
+                ["‘Cat’ 的中文翻译是什么？", "小狗", "猫咪", "兔子", "老虎", "猫咪"]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "副本题库模板");
+            XLSX.writeFile(wb, "dungeon_quiz_template.xlsx");
+        }
+
+        // 导入 Excel 题库并作为新题库加入下拉选择
+        function importExcelQuiz(element) {
+            const file = element.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                    let parsed = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        if (rows[i] && rows[i][0] && rows[i][5]) {
+                            parsed.push({
+                                q: String(rows[i][0]).trim(),
+                                options: [String(rows[i][1]), String(rows[i][2]), String(rows[i][3]), String(rows[i][4])],
+                                answer: String(rows[i][5]).trim()
+                            });
+                        }
+                    }
+
+                    if (parsed.length > 0) {
+                        const bankName = file.name.replace(/\.[^/.]+$/, "") + " (" + parsed.length + "题)";
+                        quizBanks[bankName] = parsed;
+                        initQuizBanksDropdown();
+                        
+                        // 自动切到刚导入的新题库
+                        document.getElementById('bankSelect').value = bankName;
+                        activeBankName = bankName;
+                        startNewRound();
+
+                        alert(`🎉 成功导入新题库【${bankName}】！`);
+                    } else {
+                        alert('导入失败：请确保 Excel 表格格式正确（包含题目、4个选项、正确答案列）。');
+                    }
+                } catch (err) {
+                    alert('解析 Excel 文件出错，请检查文件格式是否规范。');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            element.value = ''; // 清空选择以便重复导入
+        }
+    </script>
+</body>
+</html>

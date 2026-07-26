@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>宠物竞技场</title>
+    <style>
+        :root {
+            --bg-color: #FAF6EE;
+            --border-color: #5A3E2D;
+            --text-main: #3C281E;
+            --accent-yellow: #F5B041;
+            --accent-orange: #EB984E;
+            --accent-green: #52BE80;
+            --accent-red: #EC7063;
+            --accent-blue: #4A90E2;
+            --accent-purple: #AF7AC5;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            user-select: none; overflow-x: hidden;
+        }
+
+        .duel-header {
+            width: 100%; max-width: 900px; background: white;
+            border: 3.5px solid var(--border-color); border-radius: 20px;
+            padding: 12px 20px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 6px 0 var(--border-color);
+            margin-bottom: 20px; box-sizing: border-box; flex-wrap: wrap; gap: 10px;
+        }
+
+        .selector-box { display: flex; align-items: center; gap: 8px; font-weight: bold; }
+        select {
+            padding: 8px 12px; font-size: 14px; font-weight: bold;
+            border: 2.5px solid var(--border-color); border-radius: 12px;
+            background: var(--accent-yellow); outline: none; cursor: pointer;
+        }
+
+        .btn-start-duel {
+            padding: 10px 24px; font-size: 16px; font-weight: 900; color: white;
+            background: var(--accent-red); border: 3px solid var(--border-color);
+            border-radius: 16px; box-shadow: 0 4px 0 var(--border-color); cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn-start-duel:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--border-color); }
+        .btn-start-duel:disabled { background: #BDC3C7; cursor: not-allowed; box-shadow: none; }
+
+        /* 竞技场主舞台 */
+        .arena-container {
+            width: 100%; max-width: 900px; height: 380px; background: #FFFDF9;
+            border: 4px solid var(--border-color); border-radius: 28px;
+            box-shadow: 0 8px 0 var(--border-color); display: flex;
+            justify-content: space-between; align-items: center;
+            padding: 20px 40px; box-sizing: border-box; position: relative;
+            overflow: hidden;
+        }
+
+        .player-stage {
+            width: 260px; display: flex; flex-direction: column;
+            align-items: center; position: relative; z-index: 2;
+        }
+
+        .player-name-tag {
+            font-size: 17px; font-weight: 900; color: var(--text-main);
+            background: white; border: 2.5px solid var(--border-color);
+            padding: 4px 14px; border-radius: 12px; box-shadow: 0 3px 0 var(--border-color);
+            margin-bottom: 8px; white-space: nowrap;
+        }
+
+        .hp-bar-outer {
+            width: 100%; height: 20px; background: #EAECEE;
+            border: 2.5px solid var(--border-color); border-radius: 10px;
+            overflow: hidden; position: relative; margin-bottom: 12px;
+        }
+
+        .hp-bar-inner {
+            height: 100%; background: linear-gradient(90deg, #2ECC71, #27AE60);
+            width: 100%; transition: width 0.3s ease;
+        }
+
+        .hp-text {
+            position: absolute; width: 100%; text-align: center;
+            font-size: 11px; font-weight: 900; color: #1E293B; top: 1px;
+        }
+
+        .pet-stage-box {
+            width: 200px; height: 200px; display: flex;
+            align-items: center; justify-content: center; position: relative;
+        }
+
+        .pet-avatar {
+            max-width: 180px; max-height: 180px; object-fit: contain;
+            mix-blend-mode: multiply; transition: transform 0.1s;
+        }
+
+        /* 受击震动 */
+        .hit-shake {
+            animation: hitShake 0.4s ease-in-out;
+            filter: drop-shadow(0 0 15px #EC7063) !important;
+        }
+        @keyframes hitShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-12px) rotate(-5deg); }
+            40% { transform: translateX(12px) rotate(5deg); }
+            60% { transform: translateX(-8px); }
+            80% { transform: translateX(8px); }
+        }
+
+        /* 常驻飘字：普通伤害 */
+        .damage-pop-side {
+            position: absolute; font-size: 32px; font-weight: 900; color: #B91C1C;
+            text-shadow: 2px 2px 0 #FFF, -2px -2px 0 #FFF, 2px -2px 0 #FFF, -2px 2px 0 #FFF, 0 3px 8px rgba(0,0,0,0.25);
+            z-index: 20; pointer-events: none; white-space: nowrap;
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.4); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 常驻飘字：暴击伤害 */
+        .crit-pop-side {
+            position: absolute; font-size: 38px; font-weight: 900; color: #FFD700;
+            text-shadow: 3px 3px 0 #B91C1C, -2px -2px 0 #B91C1C, 2px -2px 0 #B91C1C, -2px 2px 0 #B91C1C, 0 0 15px #F5B041;
+            z-index: 30; pointer-events: none; display: flex; flex-direction: column; align-items: center;
+            animation: popInCrit 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popInCrit {
+            0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .crit-tag {
+            font-size: 12px; font-weight: 900; background: #C0392B; color: #FFF;
+            padding: 2px 6px; border-radius: 6px; border: 1.5px solid #FFF; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            margin-bottom: -4px; line-height: 1;
+        }
+
+        /* 法球飞行轨迹 */
+        .magic-orb {
+            position: absolute; width: 28px; height: 28px; border-radius: 50%;
+            background: radial-gradient(circle, #FFF 10%, #F5B041 50%, #E67E22 100%);
+            box-shadow: 0 0 20px #F39C12, 0 0 35px #E74C3C;
+            z-index: 15; pointer-events: none; transform: translate(-50%, -50%);
+        }
+
+        .vs-badge {
+            font-size: 36px; font-weight: 900; color: #E74C3C;
+            font-style: italic; text-shadow: 3px 3px 0 var(--border-color);
+        }
+
+        /* 全屏结算暗屏 */
+        .winner-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(5px); z-index: 99999; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer;
+        }
+
+        .winner-card {
+            width: 340px; background: #FFFDF9; border: 5px solid var(--border-color);
+            border-radius: 32px; padding: 25px; text-align: center;
+            box-shadow: 0 12px 0 var(--border-color), 0 0 60px #F5B041;
+            animation: cardPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes cardPop {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .bounce { animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    </style>
+</head>
+<body>
+
+    <div class="duel-header">
+        <div class="selector-box">
+            <span>🔴 选手 A: </span>
+            <select id="playerASelect" onchange="updateArena()"></select>
+        </div>
+
+        <button class="btn-start-duel" id="btnStart" onclick="startBattle()">⚔️ 开始决斗！</button>
+
+        <div class="selector-box">
+            <span>🔵 选手 B: </span>
+            <select id="playerBSelect" onchange="updateArena()"></select>
+        </div>
+    </div>
+
+    <!-- 对决大舞台 -->
+    <div class="arena-container" id="arena">
+        <!-- 选手 A 舞台 -->
+        <div class="player-stage">
+            <div class="player-name-tag" id="nameA">选手 A</div>
+            <div class="hp-bar-outer">
+                <div class="hp-bar-inner" id="hpBarA"></div>
+                <div class="hp-text" id="hpTextA">50 / 50</div>
+            </div>
+            <div class="pet-stage-box" id="boxA">
+                <img id="imgA" class="pet-avatar" src="" alt="Pet A"/>
+            </div>
+        </div>
+
+        <div class="vs-badge">VS</div>
+
+        <!-- 选手 B 舞台 -->
+        <div class="player-stage">
+            <div class="player-name-tag" id="nameB">选手 B</div>
+            <div class="hp-bar-outer">
+                <div class="hp-bar-inner" id="hpBarB"></div>
+                <div class="hp-text" id="hpTextB">50 / 50</div>
+            </div>
+            <div class="pet-stage-box" id="boxB">
+                <img id="imgB" class="pet-avatar" src="" alt="Pet B"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结算全屏弹窗 -->
+    <div class="winner-modal-overlay" id="winnerModal" onclick="closeWinnerModal()">
+        <div class="winner-card">
+            <div style="font-size: 60px;" class="bounce" id="winIcon">🏆</div>
+            <div style="font-size: 24px; font-weight: 900; color: var(--text-main); margin-top: 10px;" id="winTitle">决斗结束</div>
+            <div style="font-size: 15px; font-weight: bold; color: #7F8C8D; margin: 12px 0 20px 0;" id="winDesc">+100 EXP 奖励</div>
+            <div style="font-size: 12px; color: #B7950B; font-weight: bold;">( 点击任意处收下奖励 )</div>
+        </div>
+    </div>
+
+    <script>
+       // 统一的 30 只宝可梦数据库配置
+    const PET_IMAGE_DATABASE = [];
+    for (let i = 1; i <= 30; i++) {
+        PET_IMAGE_DATABASE.push({
+            id: 'pet' + i,
+            name: `宝可梦 ${i} 号`,
+            defaultIcon: '🐾',
+            stages: {
+                0: `assets/pets/pet${i}/egg.png`,
+                1: `assets/pets/pet${i}/stage1.png`,
+                2: `assets/pets/pet${i}/stage2.png`,
+                3: `assets/pets/pet${i}/stage3.png`
+            }
+        });
+    }
+
+        let db = null;
+        let studentA = null, studentB = null;
+        let hpA = 50, maxHpA = 50;
+        let hpB = 50, maxHpB = 50;
+        let stageA = 0, stageB = 0;
+        let battleTimer = null;
+
+        let lastPopA = null;
+        let lastPopB = null;
+
+        let audioCtx = null;
+        function initAudioCtx() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSoundEffect(type) {
+            try {
+                initAudioCtx();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'orb') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(350, now);
+                    osc.frequency.exponentialRampToValueAtTime(750, now + 0.15);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'hit') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(140, now);
+                    osc.frequency.exponentialRampToValueAtTime(35, now + 0.2);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'crit') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.setValueAtTime(650, now + 0.08);
+                    osc.frequency.setValueAtTime(950, now + 0.16);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.32);
+                    osc.start(now);
+                    osc.stop(now + 0.32);
+                }
+            } catch(e) {}
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('classroom_multi_accounts_v1');
+            if (saved) {
+                try { db = JSON.parse(saved); } catch(e) {}
+            }
+            renderSelectors();
+        }
+
+        function renderSelectors() {
+            const selA = document.getElementById('playerASelect');
+            const selB = document.getElementById('playerBSelect');
+            selA.innerHTML = ''; selB.innerHTML = '';
+
+            if (!db || !db.currentClass || !db[db.currentClass]) return;
+            const students = db[db.currentClass].filter(s => s.petTypeId);
+
+            if (students.length === 0) {
+                selA.innerHTML = '<option>无领养宠物的学生</option>';
+                selB.innerHTML = '<option>无领养宠物的学生</option>';
+                return;
+            }
+
+            students.forEach((s) => {
+                const stg = getStage(s.exp);
+                const optA = document.createElement('option'); optA.value = s.id; optA.innerText = `${s.name} ⭐${stg}`;
+                const optB = document.createElement('option'); optB.value = s.id; optB.innerText = `${s.name} ⭐${stg}`;
+                selA.appendChild(optA);
+                selB.appendChild(optB);
+            });
+
+            if (students.length >= 2) {
+                selB.selectedIndex = 1;
+            }
+
+            updateArena();
+        }
+
+        function getStage(exp) {
+            const e = exp || 0;
+            if (e >= 500) return 3;
+            if (e >= 300) return 2;
+            if (e >= 100) return 1;
+            return 0;
+        }
+
+        function getMaxHpByStage(stage) {
+            if (stage === 3) return 200;
+            if (stage === 2) return 100;
+            return 50;
+        }
+
+        function updateArena() {
+            if (!db || !db[db.currentClass]) return;
+            const idA = document.getElementById('playerASelect').value;
+            const idB = document.getElementById('playerBSelect').value;
+
+            studentA = db[db.currentClass].find(s => s.id == idA);
+            studentB = db[db.currentClass].find(s => s.id == idB);
+
+            if (!studentA || !studentB) return;
+
+            stageA = getStage(studentA.exp);
+            stageB = getStage(studentB.exp);
+
+            maxHpA = getMaxHpByStage(stageA); hpA = maxHpA;
+            maxHpB = getMaxHpByStage(stageB); hpB = maxHpB;
+
+            if (lastPopA) { lastPopA.remove(); lastPopA = null; }
+            if (lastPopB) { lastPopB.remove(); lastPopB = null; }
+
+            document.getElementById('nameA').innerText = `${studentA.name} ⭐${stageA}`;
+            document.getElementById('nameB').innerText = `${studentB.name} ⭐${stageB}`;
+
+            const petCfgA = PET_IMAGE_DATABASE.find(p => p.id === studentA.petTypeId);
+            const petCfgB = PET_IMAGE_DATABASE.find(p => p.id === studentB.petTypeId);
+
+            document.getElementById('imgA').src = petCfgA ? petCfgA.stages[stageA] : '';
+            document.getElementById('imgB').src = petCfgB ? petCfgB.stages[stageB] : '';
+
+            renderHpBars();
+        }
+
+        function renderHpBars() {
+            document.getElementById('hpBarA').style.width = `${Math.max(0, (hpA / maxHpA) * 100)}%`;
+            document.getElementById('hpTextA').innerText = `${Math.max(0, hpA)} / ${maxHpA}`;
+
+            document.getElementById('hpBarB').style.width = `${Math.max(0, (hpB / maxHpB) * 100)}%`;
+            document.getElementById('hpTextB').innerText = `${Math.max(0, hpB)} / ${maxHpB}`;
+        }
+
+        function getRandomDamageWithCrit(stage) {
+            let base = 0;
+            if (stage === 3) base = Math.floor(Math.random() * 11) + 20;
+            else if (stage === 2) base = Math.floor(Math.random() * 11) + 10;
+            else if (stage === 1) base = Math.floor(Math.random() * 10) + 1;
+            else base = Math.floor(Math.random() * 5) + 1;
+
+            const isCrit = Math.random() < 0.20;
+            const finalDmg = isCrit ? base * 2 : base;
+
+            return { damage: finalDmg, isCrit: isCrit };
+        }
+
+        function startBattle() {
+            if (studentA.id === studentB.id) {
+                return alert("⚠️ 不能选择同一个人决斗自己哦！");
+            }
+
+            if (stageA !== stageB) {
+                return alert(`⚠️ 无法开启决斗！\n【${studentA.name}】属于第 ${stageA} 阶段，而【${studentB.name}】属于第 ${stageB} 阶段！\n规则规定：只有相同进化阶段的宠物才能进行决斗！`);
+            }
+
+            initAudioCtx();
+
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('playerASelect').disabled = true;
+            document.getElementById('playerBSelect').disabled = true;
+
+            hpA = maxHpA; hpB = maxHpB;
+            renderHpBars();
+
+            if (lastPopA) { lastPopA.remove(); lastPopA = null; }
+            if (lastPopB) { lastPopB.remove(); lastPopB = null; }
+
+            battleTimer = setInterval(executeRound, 1600);
+        }
+
+        function executeRound() {
+            const attackA = getRandomDamageWithCrit(stageA);
+            const attackB = getRandomDamageWithCrit(stageB);
+
+            const boxA = document.getElementById('boxA');
+            const boxB = document.getElementById('boxB');
+
+            playSoundEffect('orb');
+
+            launchMagicOrb(boxA, boxB, () => {
+                hpB -= attackA.damage;
+                playSoundEffect(attackA.isCrit ? 'crit' : 'hit');
+                showDamageSideEffect('boxB', 'imgB', attackA.damage, attackA.isCrit, 'right');
+                renderHpBars();
+            });
+
+            launchMagicOrb(boxB, boxA, () => {
+                hpA -= attackB.damage;
+                playSoundEffect(attackB.isCrit ? 'crit' : 'hit');
+                showDamageSideEffect('boxA', 'imgA', attackB.damage, attackB.isCrit, 'left');
+                renderHpBars();
+            });
+
+            setTimeout(() => {
+                if (hpA <= 0 || hpB <= 0) {
+                    clearInterval(battleTimer);
+                    setTimeout(finishBattle, 800);
+                }
+            }, 650);
+        }
+
+        function launchMagicOrb(fromBox, toBox, onHit) {
+            const arena = document.getElementById('arena');
+            const rectArena = arena.getBoundingClientRect();
+            const rectFrom = fromBox.getBoundingClientRect();
+            const rectTo = toBox.getBoundingClientRect();
+
+            const startX = rectFrom.left + rectFrom.width / 2 - rectArena.left;
+            const startY = rectFrom.top + rectFrom.height / 2 - rectArena.top;
+            const endX = rectTo.left + rectTo.width / 2 - rectArena.left;
+            const endY = rectTo.top + rectTo.height / 2 - rectArena.top;
+
+            const orb = document.createElement('div');
+            orb.className = 'magic-orb';
+            orb.style.left = startX + 'px';
+            orb.style.top = startY + 'px';
+            arena.appendChild(orb);
+
+            const duration = 500;
+            const startTime = performance.now();
+
+            function animateOrb(time) {
+                const elapsed = time - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                const currentX = startX + (endX - startX) * progress;
+                const currentY = startY + (endY - startY) * progress;
+
+                orb.style.left = currentX + 'px';
+                orb.style.top = currentY + 'px';
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateOrb);
+                } else {
+                    orb.remove();
+                    if (onHit) onHit();
+                }
+            }
+
+            requestAnimationFrame(animateOrb);
+        }
+
+        function showDamageSideEffect(boxId, imgId, damage, isCrit, side) {
+            const box = document.getElementById(boxId);
+            const img = document.getElementById(imgId);
+
+            img.classList.remove('hit-shake');
+            void img.offsetWidth;
+            img.classList.add('hit-shake');
+
+            if (side === 'left' && lastPopA) {
+                lastPopA.remove();
+                lastPopA = null;
+            } else if (side === 'right' && lastPopB) {
+                lastPopB.remove();
+                lastPopB = null;
+            }
+
+            const pop = document.createElement('div');
+            if (isCrit) {
+                pop.className = 'crit-pop-side';
+                pop.innerHTML = `<div class="crit-tag">💥 CRITICAL!</div><div>-${damage}</div>`;
+            } else {
+                pop.className = 'damage-pop-side';
+                pop.innerText = `-${damage}`;
+            }
+
+            pop.style.top = '10px';
+            if (side === 'left') {
+                pop.style.left = '-38px';
+                lastPopA = pop;
+            } else {
+                pop.style.right = '-38px';
+                lastPopB = pop;
+            }
+
+            box.appendChild(pop);
+        }
+
+        function finishBattle() {
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('playerASelect').disabled = false;
+            document.getElementById('playerBSelect').disabled = false;
+
+            loadData();
+            const sA = db[db.currentClass].find(s => s.id == studentA.id);
+            const sB = db[db.currentClass].find(s => s.id == studentB.id);
+
+            const modal = document.getElementById('winnerModal');
+            const iconEl = document.getElementById('winIcon');
+            const titleEl = document.getElementById('winTitle');
+            const descEl = document.getElementById('winDesc');
+
+            if (hpA <= 0 && hpB <= 0) {
+                if (sA) sA.exp = (sA.exp || 0) + 50;
+                if (sB) sB.exp = (sB.exp || 0) + 50;
+
+                iconEl.innerText = '🤝';
+                titleEl.innerText = '势均力敌！平局！';
+                descEl.innerText = `【${studentA.name}】与【${studentB.name}】同时击倒对方！\n双方各获得 +50 EXP 经验奖励！`;
+            } else if (hpA > 0) {
+                if (sA) sA.exp = (sA.exp || 0) + 100;
+
+                iconEl.innerText = '🏆';
+                titleEl.innerText = `恭喜 【${studentA.name}】 获得胜利！`;
+                descEl.innerText = `技高一筹！斩获 +100 EXP 经验奖励！`;
+            } else {
+                if (sB) sB.exp = (sB.exp || 0) + 100;
+
+                iconEl.innerText = '🏆';
+                titleEl.innerText = `恭喜 【${studentB.name}】 获得胜利！`;
+                descEl.innerText = `技高一筹！斩获 +100 EXP 经验奖励！`;
+            }
+
+            localStorage.setItem('classroom_multi_accounts_v1', JSON.stringify(db));
+            modal.style.display = 'flex';
+        }
+
+        function closeWinnerModal() {
+            document.getElementById('winnerModal').style.display = 'none';
+            updateArena();
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>

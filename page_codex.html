@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>萌宠图鉴账号集</title>
+    <style>
+        :root {
+            --bg-color: #FAF6EE;
+            --border-color: #5A3E2D;
+            --text-main: #3C281E;
+            --accent-yellow: #F5B041;
+            --accent-orange: #EB984E;
+            --accent-green: #52BE80;
+            --accent-blue: #4A90E2;
+            --accent-purple: #AF7AC5;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            user-select: none;
+        }
+
+        .codex-header {
+            width: 100%; max-width: 950px; background: white;
+            border: 3.5px solid var(--border-color); border-radius: 20px;
+            padding: 15px 22px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 6px 0 var(--border-color);
+            margin-bottom: 20px; box-sizing: border-box; flex-wrap: wrap; gap: 10px;
+        }
+
+        .student-select {
+            padding: 8px 14px; font-size: 15px; font-weight: bold;
+            border: 2.5px solid var(--border-color); border-radius: 12px;
+            background: var(--accent-yellow); outline: none; cursor: pointer;
+        }
+
+        .codex-progress-badge {
+            font-size: 15px; font-weight: 900; color: var(--accent-orange);
+            background: #FFFDF9; border: 2.5px solid var(--border-color);
+            padding: 4px 14px; border-radius: 10px;
+        }
+
+        .pet-codex-list {
+            width: 100%; max-width: 950px;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        .pet-block {
+            background: white; border: 3.5px solid var(--border-color);
+            border-radius: 24px; padding: 18px; box-shadow: 0 6px 0 var(--border-color);
+        }
+
+        .pet-block-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; border-bottom: 2px dashed var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .pet-name-title {
+            font-size: 18px; font-weight: 900; color: var(--text-main);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .stages-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+        }
+
+        .stage-card {
+            background: #FFFDF9; border: 2.5px solid var(--border-color);
+            border-radius: 16px; padding: 10px; text-align: center;
+            display: flex; flex-direction: column; align-items: center;
+            position: relative; box-shadow: 0 3px 0 var(--border-color);
+        }
+
+        .stage-img-box {
+            width: 100%; height: 100px; display: flex;
+            align-items: center; justify-content: center;
+            position: relative; margin-bottom: 6px;
+        }
+
+        .stage-img {
+            max-width: 90px; max-height: 90px; object-fit: contain;
+            mix-blend-mode: multiply;
+        }
+
+        /* 💡 未解锁图鉴剪影效果 */
+        .locked-img {
+            filter: brightness(0) opacity(0.2) !important;
+        }
+
+        .locked-tag {
+            position: absolute;
+            background: rgba(90, 62, 45, 0.85);
+            color: white; font-size: 11px; font-weight: bold;
+            padding: 2px 8px; border-radius: 8px;
+        }
+
+        .unlocked-badge {
+            background: var(--accent-green); color: white;
+            font-size: 10px; font-weight: bold; padding: 2px 6px;
+            border-radius: 6px; margin-top: 4px;
+        }
+
+        .stage-name-text {
+            font-size: 12px; font-weight: bold; color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="codex-header">
+        <div style="font-size: 20px; font-weight: bold;">📖 萌宠个人图鉴集</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span>图鉴所有者: </span>
+            <select class="student-select" id="codexStudentSelect" onchange="renderCodexContent()"></select>
+            <span class="codex-progress-badge" id="codexProgress">进度: 0 / 20</span>
+        </div>
+    </div>
+
+    <div class="pet-codex-list" id="codexList"></div>
+
+    <script>
+        // 统一的 30 只宝可梦数据库配置
+    const PET_IMAGE_DATABASE = [];
+    for (let i = 1; i <= 30; i++) {
+        PET_IMAGE_DATABASE.push({
+            id: 'pet' + i,
+            name: `宝可梦 ${i} 号`,
+            defaultIcon: '🐾',
+            stages: {
+                0: `assets/pets/pet${i}/egg.png`,
+                1: `assets/pets/pet${i}/stage1.png`,
+                2: `assets/pets/pet${i}/stage2.png`,
+                3: `assets/pets/pet${i}/stage3.png`
+            }
+        });
+    }
+
+        const STAGE_NAMES = ['蛋壳形态', '第一阶段', '第二阶段', '第三阶段 (终极)'];
+
+        let db = null;
+
+        function loadData() {
+            const saved = localStorage.getItem('classroom_multi_accounts_v1');
+            if (saved) {
+                try { db = JSON.parse(saved); } catch(e) {}
+            }
+            renderStudentOptions();
+        }
+
+        function renderStudentOptions() {
+            const select = document.getElementById('codexStudentSelect');
+            if (!select) return;
+
+            const previousId = select.value;
+            select.innerHTML = '';
+            
+            if (!db || !db.currentClass || !db[db.currentClass] || db[db.currentClass].length === 0) {
+                const opt = document.createElement('option');
+                opt.innerText = '暂无学生';
+                select.appendChild(opt);
+                return;
+            }
+
+            const currentStudents = db[db.currentClass];
+            currentStudents.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = s.name;
+                select.appendChild(opt);
+            });
+
+            if (previousId && currentStudents.some(s => s.id == previousId)) {
+                select.value = previousId;
+            }
+
+            renderCodexContent();
+        }
+
+        function handleImageError(imgElement, originalPath) {
+            if (!imgElement.dataset.triedDoubleExt && originalPath.endsWith('.png')) {
+                imgElement.dataset.triedDoubleExt = "true";
+                imgElement.src = originalPath + ".png"; 
+            } else {
+                imgElement.style.display = 'none';
+            }
+        }
+
+        // 💡 动态渲染该学生的个人图鉴集
+        function renderCodexContent() {
+            const select = document.getElementById('codexStudentSelect');
+            const studentId = select.value;
+            const container = document.getElementById('codexList');
+            container.innerHTML = '';
+
+            if (!studentId || !db || !db[db.currentClass]) return;
+
+            const student = db[db.currentClass].find(s => s.id == studentId);
+            if (!student) return;
+
+            const codexData = student.codex || {};
+            let totalUnlockedCount = 0;
+            const totalPossibleCount = PET_IMAGE_DATABASE.length * 4; // 5种宠物 x 4形态 = 20
+
+            PET_IMAGE_DATABASE.forEach(pet => {
+                const petBlock = document.createElement('div');
+                petBlock.className = 'pet-block';
+
+                const unlockedStages = codexData[pet.id] || [];
+
+                let gridHtml = '';
+                [0, 1, 2, 3].forEach(stageIdx => {
+                    const isUnlocked = unlockedStages.includes(stageIdx);
+                    if (isUnlocked) totalUnlockedCount++;
+
+                    const imgPath = pet.stages[stageIdx];
+                    const imgClass = isUnlocked ? 'stage-img' : 'stage-img locked-img';
+                    const lockBadge = isUnlocked ? `<div class="unlocked-badge">✨ 已收集</div>` : `<div class="locked-tag">🔒 未解锁</div>`;
+
+                    gridHtml += `
+                        <div class="stage-card">
+                            <div class="stage-img-box">
+                                <img src="${imgPath}" class="${imgClass}" onerror="handleImageError(this, '${imgPath}')" />
+                                ${!isUnlocked ? lockBadge : ''}
+                            </div>
+                            <div class="stage-name-text">${STAGE_NAMES[stageIdx]}</div>
+                            ${isUnlocked ? lockBadge : ''}
+                        </div>
+                    `;
+                });
+
+                petBlock.innerHTML = `
+                    <div class="pet-block-header">
+                        <div class="pet-name-title">${pet.defaultIcon} ${pet.name}</div>
+                        <div style="font-size:12px; font-weight:bold; color:#7F8C8D;">
+                            收集解锁: ${unlockedStages.length} / 4
+                        </div>
+                    </div>
+                    <div class="stages-grid">${gridHtml}</div>
+                `;
+
+                container.appendChild(petBlock);
+            });
+
+            // 更新顶部图鉴进度指示
+            document.getElementById('codexProgress').innerText = `图鉴解锁进度: ${totalUnlockedCount} / ${totalPossibleCount}`;
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>
